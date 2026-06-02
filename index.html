@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ciné Tracker</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ciné Tracker">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #f5f5f5;
+  --bg2:       #ffffff;
+  --surface:   #ffffff;
+  --surface2:  #f0f0f0;
+  --surface3:  #e0e0e0;
+  --ink:       #1a1a2e;
+  --ink2:      #4a4a6a;
+  --muted:     #9090a8;
+  --rule:      #e8e8f0;
+  --accent:    #01b4e4;
+  --accent2:   #0d253f;
+  --cinema:    #e8a000;
+  --stream:    #16a34a;
+  --radius:    10px;
+  --radius-sm: 6px;
+  --font-title: 'Bebas Neue', sans-serif;
+  --font-body:  'DM Sans', sans-serif;
+  --safe-top:   env(safe-area-inset-top, 0px);
+  --safe-bot:   env(safe-area-inset-bottom, 0px);
+  --shadow:     0 2px 12px rgba(0,0,0,0.08);
+  --shadow-md:  0 4px 24px rgba(0,0,0,0.12);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── HEADER ─── */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--rule);
+  padding: calc(var(--safe-top) + 10px) 20px 0;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+}
+
+.logo {
+  font-family: var(--font-title);
+  font-size: 28px;
+  letter-spacing: 1px;
+  color: var(--accent2);
+  line-height: 1;
+}
+
+.logo span { color: var(--accent); }
+
+.header-actions { display: flex; gap: 8px; align-items: center; }
+
+.btn-icon {
+  background: var(--surface2);
+  border: 1px solid var(--rule);
+  color: var(--ink2);
+  border-radius: var(--radius-sm);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+.btn-icon:hover { background: var(--surface3); color: var(--ink); }
+
+/* ─── TABS NAV ─── */
+.tabs-nav {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs-nav::-webkit-scrollbar { display: none; }
+
+.tab-btn {
+  flex-shrink: 0;
+  padding: 10px 18px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tab-btn:hover { color: var(--ink2); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.tab-badge {
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 8px;
+  line-height: 14px;
+  display: none;
+}
+.tab-badge.visible { display: inline-block; }
+
+/* ─── MAIN ─── */
+#appContent { min-height: calc(100vh - 88px); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ─── SECTION TITLE ─── */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 28px 20px 14px;
+}
+.section-title {
+  font-family: var(--font-title);
+  font-size: 26px;
+  letter-spacing: 0.5px;
+  color: var(--ink);
+}
+.section-sub {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ─── SEARCH BAR ─── */
+.search-bar {
+  padding: 0 20px 16px;
+}
+.search-row {
+  display: flex;
+  background: var(--surface2);
+  border-radius: var(--radius);
+  border: 1.5px solid var(--rule);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.search-row:focus-within { border-color: var(--accent); }
+.search-row input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink);
+  min-width: 0;
+}
+.search-row input::placeholder { color: var(--muted); }
+.btn-search {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0 18px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-search:hover { opacity: 0.88; }
+.btn-search:disabled { opacity: 0.4; cursor: default; }
+
+/* ─── MOVIE GRID ─── */
+.movie-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 16px;
+  padding: 0 16px 32px;
+}
+@media (min-width: 600px) {
+  .movie-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 20px; padding: 0 24px 40px; }
+}
+
+/* ─── MOVIE CARD ─── */
+.movie-card {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: visible;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.movie-card:hover { transform: translateY(-3px); }
+
+.card-poster-wrap {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  aspect-ratio: 2/3;
+  background: var(--surface2);
+  box-shadow: var(--shadow);
+}
+
+.card-poster {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s;
+}
+.movie-card:hover .card-poster { transform: scale(1.03); }
+
+.card-poster-ph {
+  width: 100%; height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  color: var(--muted);
+}
+
+/* Score badge */
+.score-badge {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(6px);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 20px;
+  line-height: 1.4;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+/* Add to fav button */
+.btn-add-fav {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 28px;
+  height: 28px;
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(6px);
+  border: none;
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  z-index: 10;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.btn-add-fav:hover { background: var(--accent); color: #fff; transform: scale(1.15); }
+.btn-add-fav.saved { background: var(--accent); color: #fff; }
+
+.card-info { padding: 8px 2px 0; }
+.card-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-date { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* Fav extras under card */
+.fav-date-line {
+  font-size: 10px;
+  color: var(--ink2);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+}
+.dot-cinema { width:6px;height:6px;border-radius:50%;background:var(--cinema);flex-shrink:0; }
+.dot-stream  { width:6px;height:6px;border-radius:50%;background:var(--stream);flex-shrink:0; }
+
+/* ─── SUB TABS (À venir / Agenda) ─── */
+.sub-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 16px;
+  flex-wrap: wrap;
+}
+.sub-btn {
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink2);
+  transition: all 0.15s;
+  font-family: var(--font-body);
+}
+.sub-btn.active-cinema { background: #fff8e6; color: var(--cinema); border-color: rgba(232,160,0,0.4); }
+.sub-btn.active-stream { background: #f0fdf4; color: var(--stream); border-color: rgba(22,163,74,0.35); }
+
+.sub-panel { display: none; }
+.sub-panel.visible { display: block; }
+
+/* ─── LOADER ─── */
+.loader-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--muted);
+  gap: 10px;
+}
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--surface3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── EMPTY STATE ─── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80px 20px;
+  color: var(--muted);
+  gap: 12px;
+  text-align: center;
+}
+.empty-state .icon { font-size: 48px; opacity: 0.4; }
+.empty-state p { font-size: 13px; }
+
+/* ─── STATUS NOTE ─── */
+.status-note {
+  padding: 14px 20px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.status-note.err { color: #dc2626; }
+
+/* ─── SKELETON ─── */
+.skeleton-card .card-poster-wrap {
+  background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* ─── MOVIE DETAIL MODAL ─── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(3px);
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+
+@media (min-width: 600px) { .modal-overlay { align-items: center; } }
+
+.modal-sheet {
+  width: 100%;
+  max-width: 680px;
+  max-height: 92vh;
+  background: var(--bg2);
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: var(--shadow-md);
+}
+@media (min-width: 600px) { .modal-sheet { border-radius: 20px; max-height: 88vh; } }
+
+.modal-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface3) transparent;
+}
+
+.modal-backdrop { width:100%;height:220px;object-fit:cover;display:block;flex-shrink:0; }
+.modal-backdrop-ph { width:100%;height:220px;background:linear-gradient(135deg,var(--surface2) 0%,var(--surface3) 100%);flex-shrink:0; }
+.modal-backdrop-wrap { position:relative;flex-shrink:0; }
+.modal-backdrop-grad { position:absolute;bottom:0;left:0;right:0;height:140px;background:linear-gradient(to top,var(--bg2),transparent); }
+
+.modal-content { padding: 0 20px 32px; }
+
+.modal-poster-row { display:flex;gap:16px;margin-top:-70px;position:relative;z-index:2;margin-bottom:16px; }
+.modal-poster { width:90px;height:135px;object-fit:cover;border-radius:var(--radius);box-shadow:var(--shadow-md);flex-shrink:0; }
+.modal-poster-ph { width:90px;height:135px;background:var(--surface2);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--muted);flex-shrink:0; }
+
+.modal-title-block { display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:4px;min-width:0; }
+.modal-title { font-family:var(--font-title);font-size:24px;letter-spacing:0.4px;line-height:1.1;color:var(--ink); }
+.modal-tagline { font-size:12px;color:var(--muted);font-style:italic;margin-top:4px; }
+
+.modal-meta-pills { display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px; }
+.mpill { padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;letter-spacing:0.02em; }
+.mpill-score { background:rgba(1,180,228,0.1);color:var(--accent);border:1px solid rgba(1,180,228,0.3); }
+.mpill-genre { background:var(--surface2);color:var(--ink2); }
+.mpill-runtime { background:var(--surface2);color:var(--ink2); }
+
+.modal-section-title { font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin:20px 0 10px; }
+
+.modal-overview { font-size:13px;color:var(--ink2);line-height:1.65; }
+
+/* Release grid */
+.release-grid { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px; }
+.release-item { background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;border-left:3px solid transparent; }
+.release-item.cinema { border-left-color:var(--cinema); }
+.release-item.stream  { border-left-color:var(--stream); }
+.release-type { font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px; }
+.release-item.cinema .release-type { color:var(--cinema); }
+.release-item.stream  .release-type { color:var(--stream); }
+.release-date-val { font-size:13px;font-weight:500;color:var(--ink); }
+.release-platform { font-size:11px;color:var(--muted);margin-top:2px; }
+
+/* Cast */
+.cast-row { display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px; }
+.cast-row::-webkit-scrollbar { display:none; }
+.cast-item { flex-shrink:0;text-align:center;width:68px; }
+.cast-photo { width:56px;height:56px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 5px;background:var(--surface2); }
+.cast-photo-ph { width:56px;height:56px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--muted);margin:0 auto 5px; }
+.cast-name { font-size:10px;font-weight:500;color:var(--ink);line-height:1.3;word-break:break-word; }
+.cast-char { font-size:10px;color:var(--muted);margin-top:2px;line-height:1.2; }
+
+.modal-close-btn { position:absolute;top:12px;right:12px;width:32px;height:32px;background:rgba(255,255,255,0.85);backdrop-filter:blur(4px);border:1px solid var(--rule);border-radius:50%;color:var(--ink);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10; }
+
+.modal-fav-btn { display:flex;align-items:center;gap:6px;padding:11px 18px;border-radius:var(--radius);border:1.5px solid var(--rule);background:var(--surface2);color:var(--ink2);font-family:var(--font-body);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;width:100%;justify-content:center;margin-top:20px; }
+.modal-fav-btn:hover { background:var(--accent);color:#fff;border-color:var(--accent); }
+.modal-fav-btn.saved { background:rgba(1,180,228,0.1);color:var(--accent);border-color:rgba(1,180,228,0.4); }
+
+/* ICS button */
+.btn-ics { background:none;border:1.5px solid var(--rule);color:var(--ink2);padding:4px 9px;border-radius:var(--radius-sm);font-size:10px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-top:5px;transition:all 0.15s;font-family:var(--font-body); }
+.btn-ics:hover { background:var(--surface2);color:var(--ink); }
+.btn-ics svg { width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2; }
+
+/* ─── TOAST ─── */
+.toast { position:fixed;bottom:calc(20px + var(--safe-bot));left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:500;opacity:0;transition:all 0.28s;pointer-events:none;z-index:999;white-space:nowrap; }
+.toast.show { opacity:1;transform:translateX(-50%) translateY(0); }
+
+/* Upcoming card ICS overlay */
+.upcoming-ics-wrap {
+  position: absolute;
+  bottom: 7px;
+  left: 7px;
+  right: 7px;
+  display: flex;
+  justify-content: center;
+}
+.upcoming-ics-wrap .btn-ics {
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(6px);
+  width: 100%;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+}
+
+/* Stream platform under card */
+.stream-platform-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--stream);
+  margin-top: 3px;
+}
+
+@media (max-width: 400px) {
+  .movie-grid { grid-template-columns: repeat(2,1fr); gap:12px; padding:0 12px 24px; }
+  .modal-content { padding: 0 14px 28px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="logo">CINÉ<span>TRACKER</span></div>
+    <div class="header-actions">
+      <button class="btn-icon" onclick="exportData()" title="Exporter favoris">⬆</button>
+      <label class="btn-icon" title="Importer favoris" style="cursor:pointer">
+        ⬇<input type="file" accept=".json" style="display:none" onchange="importData(event)">
+      </label>
+    </div>
+  </div>
+  <nav class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('search',this)">🔍 Recherche</button>
+    <button class="tab-btn" onclick="switchTab('popular',this)">🔥 Populaires</button>
+    <button class="tab-btn" onclick="switchTab('upcoming',this)">🎬 À venir <span class="tab-badge" id="badge-upcoming"></span></button>
+    <button class="tab-btn" onclick="switchTab('agenda',this)">📅 Agenda <span class="tab-badge" id="badge-agenda"></span></button>
+    <button class="tab-btn" onclick="switchTab('favs',this)">★ Favoris <span class="tab-badge" id="badge-favs"></span></button>
+  </nav>
+</header>
+
+<div id="appContent">
+
+  <!-- SEARCH -->
+  <div class="tab-panel active" id="tab-search">
+    <div class="section-head">
+      <div class="section-title">Recherche</div>
+    </div>
+    <div class="search-bar">
+      <div class="search-row">
+        <input type="text" id="searchInput" placeholder="Titre d'un film…" autocomplete="off">
+        <button class="btn-search" id="btnSearch" onclick="doSearch()">Chercher</button>
+      </div>
+    </div>
+    <div id="searchStatus" class="status-note" style="display:none"></div>
+    <div class="movie-grid" id="grid-search" style="display:none"></div>
+  </div>
+
+  <!-- POPULAR -->
+  <div class="tab-panel" id="tab-popular">
+    <div class="section-head">
+      <div class="section-title">Populaires</div>
+      <div class="section-sub" id="popular-date"></div>
+    </div>
+    <div class="movie-grid" id="grid-popular">
+      <div class="movie-card skeleton-card" style="pointer-events:none"><div class="card-poster-wrap" style="aspect-ratio:2/3"></div></div>
+      <div class="movie-card skeleton-card" style="pointer-events:none"><div class="card-poster-wrap" style="aspect-ratio:2/3"></div></div>
+      <div class="movie-card skeleton-card" style="pointer-events:none"><div class="card-poster-wrap" style="aspect-ratio:2/3"></div></div>
+      <div class="movie-card skeleton-card" style="pointer-events:none"><div class="card-poster-wrap" style="aspect-ratio:2/3"></div></div>
+    </div>
+  </div>
+
+  <!-- UPCOMING -->
+  <div class="tab-panel" id="tab-upcoming">
+    <div class="section-head">
+      <div class="section-title">À Venir</div>
+    </div>
+    <div class="sub-tabs">
+      <button class="sub-btn active-cinema" id="subUpCinema" onclick="switchSubTab('upcoming','cinema')">🎞 Cinéma</button>
+      <button class="sub-btn" id="subUpStream" onclick="switchSubTab('upcoming','stream')">📺 Streaming</button>
+    </div>
+    <div class="sub-panel visible" id="upcoming-cinema-panel">
+      <div class="movie-grid" id="grid-upcoming-cinema">
+        <div class="loader-wrap" style="grid-column:1/-1"><div class="spinner"></div><span>Chargement…</span></div>
+      </div>
+    </div>
+    <div class="sub-panel" id="upcoming-stream-panel">
+      <div class="movie-grid" id="grid-upcoming-stream">
+        <div class="loader-wrap" style="grid-column:1/-1"><div class="spinner"></div><span>Chargement…</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENDA -->
+  <div class="tab-panel" id="tab-agenda">
+    <div class="section-head">
+      <div class="section-title">Agenda</div>
+      <div class="section-sub">Sorties à venir de vos favoris</div>
+    </div>
+    <div class="sub-tabs">
+      <button class="sub-btn active-cinema" id="subAgCinema" onclick="switchSubTab('agenda','cinema')">🎞 Cinéma</button>
+      <button class="sub-btn" id="subAgStream" onclick="switchSubTab('agenda','stream')">📺 Streaming</button>
+    </div>
+    <div class="sub-panel visible" id="agenda-cinema-panel">
+      <div class="movie-grid" id="grid-agenda-cinema"></div>
+    </div>
+    <div class="sub-panel" id="agenda-stream-panel">
+      <div class="movie-grid" id="grid-agenda-stream"></div>
+    </div>
+  </div>
+
+  <!-- FAVORITES -->
+  <div class="tab-panel" id="tab-favs">
+    <div class="section-head">
+      <div class="section-title">Mes Favoris</div>
+      <div class="section-sub" id="favs-count-label"></div>
+    </div>
+    <div class="movie-grid" id="grid-favs"></div>
+  </div>
+
+</div>
+
+<!-- MOVIE DETAIL MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleModalClick(event)">
+  <div class="modal-sheet" id="modalSheet">
+    <button class="modal-close-btn" onclick="closeModal()">✕</button>
+    <div id="modalInner" class="modal-scroll"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════ */
+const API_KEY  = '729cf9f096e955020bb7d27c547be637';
+const BASE_URL = 'https://api.themoviedb.org/3';
+const IMG_BASE = 'https://image.tmdb.org/t/p';
+const STORE_KEY = 'cinetracker-v2';
+
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let S = { favs: [] };
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) S = { ...S, ...JSON.parse(raw) };
+  } catch(e) {}
+}
+
+function saveState() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch(e) {}
+}
+
+/* ═══════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════ */
+function h(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(dateStr) {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
+}
+
+function daysUntil(dateStr) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dateStr); d.setHours(0,0,0,0);
+  return Math.round((d - today) / 86400000);
+}
+
+function daysLabel(n) {
+  if (n < 0) return 'Sorti';
+  if (n === 0) return "Aujourd'hui !";
+  if (n === 1) return 'Demain';
+  return `Dans ${n} j.`;
+}
+
+function showToast(msg, dur=2600) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+async function tmdb(path, params={}) {
+  const url = new URL(BASE_URL + path);
+  url.searchParams.set('api_key', API_KEY);
+  url.searchParams.set('language', 'fr-FR');
+  for (const [k,v] of Object.entries(params)) url.searchParams.set(k, v);
+  const r = await fetch(url.toString());
+  if (!r.ok) throw new Error('TMDB ' + r.status);
+  return r.json();
+}
+
+/* ═══════════════════════════════════════════
+   TABS
+═══════════════════════════════════════════ */
+const tabLoaded = {};
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+
+  if (name === 'popular' && !tabLoaded.popular) { tabLoaded.popular = true; loadPopular(); }
+  if (name === 'upcoming' && !tabLoaded.upcoming) { tabLoaded.upcoming = true; loadUpcoming(); }
+  if (name === 'favs') renderFavs();
+  if (name === 'agenda') renderAgenda();
+}
+
+/* Sub-tabs state */
+const subTabState = { upcoming: 'cinema', agenda: 'cinema' };
+
+function switchSubTab(section, type) {
+  subTabState[section] = type;
+  const other = type === 'cinema' ? 'stream' : 'cinema';
+  const cinBtn = document.getElementById('sub' + (section==='upcoming'?'Up':'Ag') + 'Cinema');
+  const stBtn  = document.getElementById('sub' + (section==='upcoming'?'Up':'Ag') + 'Stream');
+  cinBtn.className = 'sub-btn' + (type==='cinema' ? ' active-cinema' : '');
+  stBtn.className  = 'sub-btn' + (type==='stream'  ? ' active-stream'  : '');
+  document.getElementById(section + '-cinema-panel').classList.toggle('visible', type==='cinema');
+  document.getElementById(section + '-stream-panel').classList.toggle('visible', type==='stream');
+}
+
+/* ═══════════════════════════════════════════
+   FAVORITES
+═══════════════════════════════════════════ */
+function isFav(movieId) { return S.favs.some(f => f.id === movieId); }
+
+function toggleFav(movie) {
+  const idx = S.favs.findIndex(f => f.id === movie.id);
+  if (idx >= 0) {
+    S.favs.splice(idx, 1);
+    showToast('✕ Retiré des favoris');
+  } else {
+    S.favs.push(movie);
+    showToast('★ Ajouté aux favoris');
+  }
+  saveState();
+  updateBadges();
+  // Refresh all fav buttons in grids
+  document.querySelectorAll(`.btn-add-fav[data-id="${movie.id}"]`).forEach(btn => {
+    btn.classList.toggle('saved', isFav(movie.id));
+    btn.textContent = isFav(movie.id) ? '★' : '+';
+  });
+  // Refresh modal fav btn
+  const mfb = document.getElementById('modal-fav-btn');
+  if (mfb && Number(mfb.dataset.id) === movie.id) {
+    mfb.className = 'modal-fav-btn' + (isFav(movie.id) ? ' saved' : '');
+    mfb.innerHTML = isFav(movie.id) ? '★ Dans mes favoris' : '☆ Ajouter aux favoris';
+  }
+}
+
+function updateBadges() {
+  const fb = document.getElementById('badge-favs');
+  fb.textContent = S.favs.length || '';
+  fb.classList.toggle('visible', S.favs.length > 0);
+}
+
+/* ═══════════════════════════════════════════
+   MAKE POSTER CARD
+═══════════════════════════════════════════ */
+function makePosterEl(movie, options={}) {
+  // options: { showIcs: bool, showDays: bool, showStreamLabel: bool, streamLabel: string }
+  const card = document.createElement('div');
+  card.className = 'movie-card';
+
+  const posterWrap = document.createElement('div');
+  posterWrap.className = 'card-poster-wrap';
+
+  if (movie.poster_path) {
+    const img = document.createElement('img');
+    img.className = 'card-poster';
+    img.src = IMG_BASE + '/w342' + movie.poster_path;
+    img.alt = '';
+    img.loading = 'lazy';
+    posterWrap.appendChild(img);
+  } else {
+    const ph = document.createElement('div');
+    ph.className = 'card-poster-ph';
+    ph.textContent = '🎬';
+    posterWrap.appendChild(ph);
+  }
+
+  if (movie.vote_average && movie.vote_average > 0) {
+    const score = document.createElement('div');
+    score.className = 'score-badge';
+    score.textContent = '★ ' + movie.vote_average.toFixed(1);
+    posterWrap.appendChild(score);
+  }
+
+  const favBtn = document.createElement('button');
+  favBtn.className = 'btn-add-fav' + (isFav(movie.id) ? ' saved' : '');
+  favBtn.dataset.id = movie.id;
+  favBtn.textContent = isFav(movie.id) ? '★' : '+';
+  favBtn.title = 'Favoris';
+  favBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    toggleFav(movie);
+  });
+  posterWrap.appendChild(favBtn);
+
+  // ICS overlay button for upcoming cinema
+  if (options.showIcs && movie.release_date) {
+    const icsWrap = document.createElement('div');
+    icsWrap.className = 'upcoming-ics-wrap';
+    const icsBtn = document.createElement('button');
+    icsBtn.className = 'btn-ics';
+    icsBtn.innerHTML = `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Calendrier`;
+    icsBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      downloadIcs(movie.title || movie.original_title, movie.release_date, 'Cinéma');
+    });
+    icsWrap.appendChild(icsBtn);
+    posterWrap.appendChild(icsWrap);
+  }
+
+  const info = document.createElement('div');
+  info.className = 'card-info';
+
+  const title = document.createElement('div');
+  title.className = 'card-title';
+  title.textContent = movie.title || movie.original_title;
+
+  const date = document.createElement('div');
+  date.className = 'card-date';
+
+  if (options.showDays && movie.release_date) {
+    const days = daysUntil(movie.release_date);
+    date.textContent = fmtDate(movie.release_date) + ' · ' + daysLabel(days);
+    date.style.color = days <= 7 ? 'var(--cinema)' : 'var(--muted)';
+  } else if (options.showStreamLabel && options.streamLabel) {
+    date.textContent = options.streamLabel;
+    date.style.color = 'var(--stream)';
+  } else {
+    date.textContent = movie.release_date ? fmtDate(movie.release_date) : '';
+  }
+
+  info.appendChild(title);
+  info.appendChild(date);
+
+  // Fav extras (cinema date + streaming platforms)
+  if (options.favExtras) {
+    if (movie.release_date) {
+      const cinLine = document.createElement('div');
+      cinLine.className = 'fav-date-line';
+      const dot = document.createElement('div'); dot.className = 'dot-cinema';
+      const txt = document.createElement('span');
+      txt.textContent = '🎞 ' + fmtDate(movie.release_date);
+      cinLine.appendChild(dot); cinLine.appendChild(txt);
+      info.appendChild(cinLine);
+    }
+    if (movie._streamPlatforms && movie._streamPlatforms.length) {
+      const stLine = document.createElement('div');
+      stLine.className = 'fav-date-line';
+      const dot = document.createElement('div'); dot.className = 'dot-stream';
+      const txt = document.createElement('span');
+      txt.textContent = '📺 ' + movie._streamPlatforms.join(', ');
+      stLine.appendChild(dot); stLine.appendChild(txt);
+      info.appendChild(stLine);
+    }
+  }
+
+  card.appendChild(posterWrap);
+  card.appendChild(info);
+  card.addEventListener('click', () => openMovieModal(movie.id));
+  return card;
+}
+
+function renderGrid(containerId, movies, options={}) {
+  const grid = document.getElementById(containerId);
+  grid.innerHTML = '';
+  if (!movies || !movies.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.style.gridColumn = '1/-1';
+    empty.innerHTML = '<div class="icon">🎬</div><p>Aucun film trouvé</p>';
+    grid.appendChild(empty);
+    return;
+  }
+  for (const m of movies) grid.appendChild(makePosterEl(m, options));
+}
+
+/* ═══════════════════════════════════════════
+   SEARCH
+═══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('searchInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+  });
+});
+
+async function doSearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (!q) return;
+
+  const status = document.getElementById('searchStatus');
+  const grid   = document.getElementById('grid-search');
+
+  status.style.display = 'block';
+  status.textContent = 'Recherche en cours…';
+  grid.style.display = 'none';
+  grid.innerHTML = '';
+
+  document.getElementById('btnSearch').disabled = true;
+
+  try {
+    const data = await tmdb('/search/movie', { query: q, include_adult: false });
+    const results = (data.results || []).filter(m => m.poster_path || m.title);
+
+    document.getElementById('btnSearch').disabled = false;
+
+    if (!results.length) {
+      status.textContent = 'Aucun résultat pour "' + q + '"';
+      return;
+    }
+
+    status.textContent = results.length + ' résultat' + (results.length > 1 ? 's' : '') + ' pour "' + q + '"';
+    grid.style.display = 'grid';
+    renderGrid('grid-search', results);
+
+  } catch(e) {
+    document.getElementById('btnSearch').disabled = false;
+    status.className = 'status-note err';
+    status.textContent = 'Erreur : ' + e.message;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   POPULAR
+═══════════════════════════════════════════ */
+async function loadPopular() {
+  try {
+    const data = await tmdb('/movie/popular', { page: 1, region: 'FR' });
+    document.getElementById('popular-date').textContent =
+      new Date().toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+    renderGrid('grid-popular', data.results || []);
+  } catch(e) {
+    document.getElementById('grid-popular').innerHTML =
+      '<div class="empty-state" style="grid-column:1/-1"><div class="icon">⚠️</div><p>Erreur de chargement</p></div>';
+  }
+}
+
+/* ═══════════════════════════════════════════
+   UPCOMING
+═══════════════════════════════════════════ */
+async function loadUpcoming() {
+  const gridCinema = document.getElementById('grid-upcoming-cinema');
+  const gridStream  = document.getElementById('grid-upcoming-stream');
+
+  try {
+    // Cinema: upcoming theatrical
+    const pages = await Promise.all([
+      tmdb('/movie/upcoming', { page: 1, region: 'FR' }),
+      tmdb('/movie/upcoming', { page: 2, region: 'FR' }),
+    ]);
+    const today = new Date(); today.setHours(0,0,0,0);
+    let cinema = [];
+    for (const p of pages) {
+      for (const m of (p.results || [])) {
+        if (m.release_date && new Date(m.release_date) >= today) cinema.push(m);
+      }
+    }
+    cinema.sort((a,b) => new Date(a.release_date) - new Date(b.release_date));
+
+    renderGrid('grid-upcoming-cinema', cinema, { showIcs: true, showDays: true });
+
+    const ub = document.getElementById('badge-upcoming');
+    ub.textContent = cinema.length || '';
+    ub.classList.toggle('visible', cinema.length > 0);
+
+    // Streaming: now_playing cross-referenced with watch/providers
+    const sp = await tmdb('/movie/now_playing', { page: 1, region: 'FR' });
+    const candidates = (sp.results || []).slice(0, 14);
+    const withStream = [];
+
+    for (const m of candidates) {
+      try {
+        const wp = await tmdb('/movie/' + m.id + '/watch/providers');
+        const fr = (wp.results || {}).FR || {};
+        if (fr.flatrate && fr.flatrate.length) {
+          withStream.push({
+            ...m,
+            _streamPlatforms: fr.flatrate.slice(0,4).map(p => p.provider_name),
+          });
+        }
+      } catch(e) {}
+      await new Promise(r => setTimeout(r, 80));
+    }
+
+    renderGrid('grid-upcoming-stream', withStream, {
+      showStreamLabel: true,
+      streamLabel: m => m._streamPlatforms ? m._streamPlatforms.join(' · ') : '',
+    });
+
+    // Re-render stream with correct per-movie label
+    gridStream.innerHTML = '';
+    if (!withStream.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state'; empty.style.gridColumn = '1/-1';
+      empty.innerHTML = '<div class="icon">📺</div><p>Aucun film en streaming détecté</p>';
+      gridStream.appendChild(empty);
+    } else {
+      for (const m of withStream) {
+        const el = makePosterEl(m, {
+          showStreamLabel: true,
+          streamLabel: m._streamPlatforms ? m._streamPlatforms.join(' · ') : '',
+        });
+        gridStream.appendChild(el);
+      }
+    }
+
+  } catch(e) {
+    gridCinema.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">⚠️</div><p>Erreur : ' + h(e.message) + '</p></div>';
+  }
+}
+
+/* ═══════════════════════════════════════════
+   AGENDA (upcoming from favorites)
+═══════════════════════════════════════════ */
+async function renderAgenda() {
+  const gridCinema = document.getElementById('grid-agenda-cinema');
+  const gridStream  = document.getElementById('grid-agenda-stream');
+
+  if (!S.favs.length) {
+    const msg = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">★</div><p>Ajoutez des films en favoris pour voir leurs sorties à venir.</p></div>';
+    gridCinema.innerHTML = msg;
+    gridStream.innerHTML = msg;
+    return;
+  }
+
+  gridCinema.innerHTML = '<div class="loader-wrap" style="grid-column:1/-1"><div class="spinner"></div><span>Chargement…</span></div>';
+  gridStream.innerHTML = '<div class="loader-wrap" style="grid-column:1/-1"><div class="spinner"></div><span>Chargement…</span></div>';
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const cinemaUpcoming = [];
+  const streamUpcoming = [];
+
+  for (const fav of S.favs) {
+    try {
+      // Get full movie details + release dates
+      const [detail, rdData, wpData] = await Promise.all([
+        tmdb('/movie/' + fav.id),
+        tmdb('/movie/' + fav.id + '/release_dates'),
+        tmdb('/movie/' + fav.id + '/watch/providers'),
+      ]);
+
+      const frReleases = (rdData.results || []).find(r => r.iso_3166_1 === 'FR');
+      function findRelease(country, types) {
+        if (!country) return null;
+        for (const t of types) {
+          const rd = country.release_dates.find(r => r.type === t && r.release_date);
+          if (rd) return rd.release_date;
+        }
+        return null;
+      }
+
+      const cinemaDate = findRelease(frReleases, [3]) || detail.release_date;
+      const digitalDate = findRelease(frReleases, [4]);
+
+      const fr = (wpData.results || {}).FR || {};
+      const platforms = fr.flatrate ? fr.flatrate.slice(0,4).map(p => p.provider_name) : [];
+
+      const movie = { ...fav, ...detail };
+
+      // Cinema upcoming: release date in the future
+      if (cinemaDate && new Date(cinemaDate) >= today) {
+        cinemaUpcoming.push({ ...movie, _cinemaDate: cinemaDate });
+      }
+
+      // Stream upcoming: digital date in future, OR already on a platform
+      if (digitalDate && new Date(digitalDate) >= today) {
+        streamUpcoming.push({ ...movie, _digitalDate: digitalDate, _streamPlatforms: platforms });
+      } else if (platforms.length && (!cinemaDate || new Date(cinemaDate) < today)) {
+        // Already streaming
+        streamUpcoming.push({ ...movie, _streamPlatforms: platforms });
+      }
+
+    } catch(e) {}
+    await new Promise(r => setTimeout(r, 100));
+  }
+
+  cinemaUpcoming.sort((a,b) => new Date(a._cinemaDate||a.release_date) - new Date(b._cinemaDate||b.release_date));
+  streamUpcoming.sort((a,b) => new Date(a._digitalDate||0) - new Date(b._digitalDate||0));
+
+  // Update badge
+  const total = cinemaUpcoming.length + streamUpcoming.length;
+  const ab = document.getElementById('badge-agenda');
+  ab.textContent = total || '';
+  ab.classList.toggle('visible', total > 0);
+
+  gridCinema.innerHTML = '';
+  if (!cinemaUpcoming.length) {
+    gridCinema.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🎞</div><p>Aucune sortie cinéma à venir parmi vos favoris</p></div>';
+  } else {
+    for (const m of cinemaUpcoming) {
+      gridCinema.appendChild(makePosterEl(m, {
+        showIcs: true,
+        showDays: true,
+        ...(m._cinemaDate ? { release_date: m._cinemaDate } : {}),
+      }));
+    }
+  }
+
+  gridStream.innerHTML = '';
+  if (!streamUpcoming.length) {
+    gridStream.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">📺</div><p>Aucune sortie streaming à venir parmi vos favoris</p></div>';
+  } else {
+    for (const m of streamUpcoming) {
+      const el = makePosterEl(m, {
+        showStreamLabel: true,
+        streamLabel: m._streamPlatforms && m._streamPlatforms.length
+          ? m._streamPlatforms.join(' · ')
+          : (m._digitalDate ? fmtDate(m._digitalDate) : 'Bientôt'),
+      });
+      gridStream.appendChild(el);
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════
+   FAVORITES RENDER
+═══════════════════════════════════════════ */
+async function renderFavs() {
+  const grid = document.getElementById('grid-favs');
+  const label = document.getElementById('favs-count-label');
+
+  if (!S.favs.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">★</div><p>Ajoutez des films avec le bouton +</p></div>';
+    label.textContent = '';
+    return;
+  }
+
+  label.textContent = S.favs.length + ' film' + (S.favs.length > 1 ? 's' : '');
+  grid.innerHTML = '';
+
+  for (const fav of S.favs) {
+    // Fetch streaming platforms if not cached
+    if (!fav._providers) {
+      try {
+        const wp = await tmdb('/movie/' + fav.id + '/watch/providers');
+        const fr = (wp.results || {}).FR || {};
+        fav._streamPlatforms = fr.flatrate ? fr.flatrate.slice(0,3).map(p => p.provider_name) : [];
+        fav._providers = true;
+        saveState();
+      } catch(e) {}
+    }
+    grid.appendChild(makePosterEl(fav, { favExtras: true }));
+  }
+}
+
+/* ═══════════════════════════════════════════
+   MOVIE DETAIL MODAL
+═══════════════════════════════════════════ */
+let _currentModalId = null;
+
+async function openMovieModal(movieId) {
+  _currentModalId = movieId;
+  const overlay = document.getElementById('modalOverlay');
+  const inner   = document.getElementById('modalInner');
+
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  inner.innerHTML = '<div class="loader-wrap"><div class="spinner"></div><span>Chargement…</span></div>';
+
+  try {
+    const [detail, credits, providers, rdData] = await Promise.all([
+      tmdb('/movie/' + movieId),
+      tmdb('/movie/' + movieId + '/credits'),
+      tmdb('/movie/' + movieId + '/watch/providers'),
+      tmdb('/movie/' + movieId + '/release_dates'),
+    ]);
+
+    if (_currentModalId !== movieId) return;
+
+    const fr = (providers.results || {}).FR || {};
+    const streamPlatforms = fr.flatrate || [];
+
+    // Release dates
+    const frReleases = (rdData.results || []).find(r => r.iso_3166_1 === 'FR');
+    const usReleases = (rdData.results || []).find(r => r.iso_3166_1 === 'US');
+
+    function findRelease(country, types) {
+      if (!country) return null;
+      for (const t of types) {
+        const rd = country.release_dates.find(r => r.type === t && r.release_date);
+        if (rd) return rd.release_date;
+      }
+      return null;
+    }
+
+    const cinemaDateFR = findRelease(frReleases, [3]) || detail.release_date;
+    const cinemaDateUS = findRelease(usReleases, [3]);
+    const digitalDate  = findRelease(frReleases, [4]) || findRelease(usReleases, [4]);
+
+    const cast = (credits.cast || []).slice(0, 10);
+    const backdropUrl = detail.backdrop_path ? IMG_BASE + '/w1280' + detail.backdrop_path : null;
+    const posterUrl   = detail.poster_path   ? IMG_BASE + '/w342'  + detail.poster_path   : null;
+    const score = detail.vote_average ? detail.vote_average.toFixed(1) : null;
+
+    const favMovie = {
+      id: detail.id, title: detail.title, original_title: detail.original_title,
+      poster_path: detail.poster_path, backdrop_path: detail.backdrop_path,
+      release_date: detail.release_date, vote_average: detail.vote_average,
+    };
+
+    inner.innerHTML = '';
+
+    // Backdrop
+    const backdropWrap = document.createElement('div');
+    backdropWrap.className = 'modal-backdrop-wrap';
+    if (backdropUrl) {
+      const bd = document.createElement('img');
+      bd.className = 'modal-backdrop'; bd.src = backdropUrl; bd.alt = '';
+      backdropWrap.appendChild(bd);
+    } else {
+      const ph = document.createElement('div'); ph.className = 'modal-backdrop-ph';
+      backdropWrap.appendChild(ph);
+    }
+    const grad = document.createElement('div'); grad.className = 'modal-backdrop-grad';
+    backdropWrap.appendChild(grad);
+    inner.appendChild(backdropWrap);
+
+    const content = document.createElement('div');
+    content.className = 'modal-content';
+
+    // Poster + title
+    const posterRow = document.createElement('div');
+    posterRow.className = 'modal-poster-row';
+    if (posterUrl) {
+      const pimg = document.createElement('img');
+      pimg.className = 'modal-poster'; pimg.src = posterUrl; pimg.alt = '';
+      posterRow.appendChild(pimg);
+    } else {
+      const pph = document.createElement('div');
+      pph.className = 'modal-poster-ph'; pph.textContent = '🎬';
+      posterRow.appendChild(pph);
+    }
+    const titleBlock = document.createElement('div');
+    titleBlock.className = 'modal-title-block';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'modal-title';
+    titleEl.textContent = detail.title || detail.original_title;
+    titleBlock.appendChild(titleEl);
+    if (detail.tagline) {
+      const tag = document.createElement('div');
+      tag.className = 'modal-tagline';
+      tag.textContent = '"' + detail.tagline + '"';
+      titleBlock.appendChild(tag);
+    }
+    posterRow.appendChild(titleBlock);
+    content.appendChild(posterRow);
+
+    // Meta pills
+    const pills = document.createElement('div');
+    pills.className = 'modal-meta-pills';
+    if (score) { const p = document.createElement('span'); p.className = 'mpill mpill-score'; p.textContent = '★ ' + score; pills.appendChild(p); }
+    if (detail.runtime) { const p = document.createElement('span'); p.className = 'mpill mpill-runtime'; p.textContent = '⏱ ' + Math.floor(detail.runtime/60) + 'h ' + (detail.runtime%60) + 'min'; pills.appendChild(p); }
+    for (const g of (detail.genres||[]).slice(0,3)) {
+      const p = document.createElement('span'); p.className = 'mpill mpill-genre'; p.textContent = g.name; pills.appendChild(p);
+    }
+    content.appendChild(pills);
+
+    // Release dates
+    const rdTitle = document.createElement('div');
+    rdTitle.className = 'modal-section-title'; rdTitle.textContent = 'Dates de sortie';
+    content.appendChild(rdTitle);
+
+    const rdGrid = document.createElement('div');
+    rdGrid.className = 'release-grid';
+
+    function makeRelItem(cssClass, label, date, sub) {
+      const item = document.createElement('div');
+      item.className = 'release-item ' + cssClass;
+      const typEl = document.createElement('div'); typEl.className = 'release-type'; typEl.textContent = label;
+      const dv = document.createElement('div'); dv.className = 'release-date-val'; dv.textContent = date ? fmtDate(date) : '—';
+      item.appendChild(typEl); item.appendChild(dv);
+      if (sub) { const s = document.createElement('div'); s.className = 'release-platform'; s.textContent = sub; item.appendChild(s); }
+      return item;
+    }
+
+    rdGrid.appendChild(makeRelItem('cinema', '🎞 Cinéma France', cinemaDateFR, cinemaDateUS ? '🇺🇸 US : ' + fmtDate(cinemaDateUS) : null));
+    const spNames = streamPlatforms.map(p=>p.provider_name).join(', ');
+    rdGrid.appendChild(makeRelItem('stream', '📺 Streaming', digitalDate, spNames || 'Non disponible en FR'));
+    content.appendChild(rdGrid);
+
+    // US/FR delay note
+    if (cinemaDateUS && cinemaDateFR && cinemaDateUS !== cinemaDateFR) {
+      const diff = Math.round((new Date(cinemaDateFR) - new Date(cinemaDateUS)) / 86400000);
+      const note = document.createElement('div');
+      note.style.cssText = 'font-size:11px;color:var(--muted);margin-bottom:4px;';
+      if (diff > 0) note.textContent = '⚠ Sortie France ' + diff + ' jour' + (diff>1?'s':'') + ' après les US';
+      else if (diff < 0) note.textContent = '✓ Sortie France ' + Math.abs(diff) + ' jour' + (Math.abs(diff)>1?'s':'') + ' avant les US';
+      content.appendChild(note);
+    }
+
+    // Streaming platforms
+    if (streamPlatforms.length) {
+      const spTitle = document.createElement('div'); spTitle.className = 'modal-section-title'; spTitle.textContent = 'Disponible sur';
+      content.appendChild(spTitle);
+      const spRow = document.createElement('div'); spRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px;';
+      for (const p of streamPlatforms) {
+        const chip = document.createElement('span');
+        chip.style.cssText = 'background:#f0fdf4;border:1px solid rgba(22,163,74,0.25);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--stream);font-weight:500;';
+        chip.textContent = '📺 ' + p.provider_name;
+        spRow.appendChild(chip);
+      }
+      content.appendChild(spRow);
+    }
+
+    // Synopsis
+    if (detail.overview) {
+      const ovTitle = document.createElement('div'); ovTitle.className = 'modal-section-title'; ovTitle.textContent = 'Synopsis';
+      content.appendChild(ovTitle);
+      const ov = document.createElement('div'); ov.className = 'modal-overview'; ov.textContent = detail.overview;
+      content.appendChild(ov);
+    }
+
+    // Cast
+    if (cast.length) {
+      const castTitle = document.createElement('div'); castTitle.className = 'modal-section-title'; castTitle.textContent = 'Têtes d\'affiche';
+      content.appendChild(castTitle);
+      const castRow = document.createElement('div'); castRow.className = 'cast-row';
+      for (const actor of cast) {
+        const item = document.createElement('div'); item.className = 'cast-item';
+        if (actor.profile_path) {
+          const img = document.createElement('img'); img.className = 'cast-photo';
+          img.src = IMG_BASE + '/w92' + actor.profile_path; img.alt = ''; img.loading = 'lazy';
+          item.appendChild(img);
+        } else {
+          const ph = document.createElement('div'); ph.className = 'cast-photo-ph'; ph.textContent = '👤';
+          item.appendChild(ph);
+        }
+        const name = document.createElement('div'); name.className = 'cast-name'; name.textContent = actor.name;
+        const char = document.createElement('div'); char.className = 'cast-char'; char.textContent = actor.character;
+        item.appendChild(name); item.appendChild(char);
+        castRow.appendChild(item);
+      }
+      content.appendChild(castRow);
+    }
+
+    // Fav button
+    const favBtn = document.createElement('button');
+    favBtn.className = 'modal-fav-btn' + (isFav(movieId) ? ' saved' : '');
+    favBtn.id = 'modal-fav-btn';
+    favBtn.dataset.id = movieId;
+    favBtn.innerHTML = isFav(movieId) ? '★ Dans mes favoris' : '☆ Ajouter aux favoris';
+    favBtn.addEventListener('click', () => toggleFav(favMovie));
+    content.appendChild(favBtn);
+
+    inner.appendChild(content);
+
+  } catch(e) {
+    inner.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Erreur : ' + h(e.message) + '</p></div>';
+  }
+}
+
+function closeModal() {
+  _currentModalId = null;
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function handleModalClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ═══════════════════════════════════════════
+   ICS
+═══════════════════════════════════════════ */
+function fmtIcsLocal(dateStr, hour, min) {
+  const d = new Date(dateStr);
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(hour)}${pad(min)}00`;
+}
+function escIcs(s) {
+  return (s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+}
+
+function downloadIcs(title, dateStr, type) {
+  const uid = 'cinetracker-' + Date.now() + '@local';
+  const now  = fmtIcsLocal(new Date().toISOString(), new Date().getHours(), new Date().getMinutes());
+  const dtS  = fmtIcsLocal(dateStr, 20, 0);
+  const dtE  = fmtIcsLocal(dateStr, 22, 30);
+  const ics = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Ciné Tracker//FR','CALSCALE:GREGORIAN','METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    'UID:' + uid, 'DTSTAMP:' + now,
+    'DTSTART;TZID=Europe/Paris:' + dtS,
+    'DTEND;TZID=Europe/Paris:' + dtE,
+    'SUMMARY:' + escIcs('🎬 ' + title + ' — ' + type),
+    'DESCRIPTION:' + escIcs(type + ' : ' + title),
+    'BEGIN:VALARM','TRIGGER:-PT60M','ACTION:DISPLAY',
+    'DESCRIPTION:Sortie aujourd\'hui — ' + escIcs(title),
+    'END:VALARM','END:VEVENT','END:VCALENDAR',
+  ].join('\r\n');
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = (title + '.ics').replace(/[/:*?"<>|]/g,'-'); a.click();
+  URL.revokeObjectURL(url);
+  showToast('📅 ' + title + ' ajouté au calendrier');
+}
+
+/* ═══════════════════════════════════════════
+   EXPORT / IMPORT
+═══════════════════════════════════════════ */
+function exportData() {
+  const blob = new Blob([JSON.stringify({ version:2, exported:new Date().toISOString(), favorites:S.favs }, null, 2)], { type:'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'cinetracker.json'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ ' + S.favs.length + ' favori(s) exporté(s)');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.favorites || !Array.isArray(data.favorites)) throw new Error('Format invalide');
+      let added = 0;
+      for (const fav of data.favorites) {
+        if (!fav.id || !fav.title) continue;
+        if (!S.favs.some(f => f.id === fav.id)) { S.favs.push(fav); added++; }
+      }
+      saveState(); updateBadges();
+      showToast(added > 0 ? '✓ ' + added + ' favori(s) importé(s)' : '⚠ Déjà tous présents');
+    } catch(err) { showToast('✗ ' + err.message); }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+loadState();
+updateBadges();
+// Popular loads on first visit to that tab
+</script>
+</body>
+</html>
