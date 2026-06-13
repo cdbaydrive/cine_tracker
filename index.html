@@ -679,6 +679,15 @@ header {
 }
 .trailer-iframe-wrap iframe { width: 100%; height: 100%; border: 0; display: block; }
 
+/* Pre-initialized YouTube player sitting behind the thumbnail overlay */
+.yt-mount { position: absolute; inset: 0; z-index: 1; }
+.yt-mount iframe { width: 100%; height: 100%; border: 0; display: block; }
+.modal-backdrop-wrap.playing { height: auto; aspect-ratio: 16/9; }
+.modal-backdrop-wrap.playing .modal-backdrop,
+.modal-backdrop-wrap.playing .modal-backdrop-grad,
+.modal-backdrop-wrap.playing .trailer-play-btn,
+.modal-backdrop-wrap.playing .trailer-label { display: none; }
+
 /* ─── FILMOGRAPHY OVERLAY (stacked over the movie modal) ─── */
 .person-layer {
   position: absolute;
@@ -1779,7 +1788,8 @@ async function openMovieModal(movieId) {
   const overlay = document.getElementById('modalOverlay');
   const inner   = document.getElementById('modalInner');
 
-  // Ensure the filmography layer isn't lingering from a previous view
+  // Tear down any previous trailer player and the filmography layer
+  destroyTrailerPlayer();
   document.getElementById('personLayer').classList.remove('open');
 
   overlay.classList.add('open');
@@ -1864,7 +1874,11 @@ async function openMovieModal(movieId) {
       label.textContent = '▶ Bande-annonce';
       backdropWrap.appendChild(playBtn);
       backdropWrap.appendChild(label);
-      playBtn.addEventListener('click', () => playTrailer(backdropWrap, trailerKey));
+      // Pre-create the YouTube player (behind the thumbnail) so a single
+      // user tap can start it — required for iOS, which blocks programmatic
+      // playback unless it happens inside the gesture on an already-ready player.
+      prepareTrailer(backdropWrap, trailerKey);
+      playBtn.addEventListener('click', () => startTrailer(backdropWrap, trailerKey));
     }
     inner.appendChild(backdropWrap);
 
@@ -2070,22 +2084,94 @@ function renderModalFavControls(movieId, favMovie, container) {
 /* ═══════════════════════════════════════════
    TRAILER
 ═══════════════════════════════════════════ */
-function playTrailer(backdropWrap, key) {
+/* ═══════════════════════════════════════════
+   TRAILER (YouTube IFrame API)
+   The player is created up front (prepareTrailer). The user's tap then
+   calls playVideo() synchronously (startTrailer), which iOS allows because
+   the player already exists and the call happens inside the gesture.
+═══════════════════════════════════════════ */
+let _ytApiState = 'none'; // none | loading | ready
+let _ytPlayer = null;
+let _ytPlayerReady = false;
+let _ytWantPlay = false;
+let _trailerToken = 0;
+
+function loadYouTubeAPI() {
+  return new Promise((resolve) => {
+    if (_ytApiState === 'ready' || (window.YT && window.YT.Player)) { _ytApiState = 'ready'; return resolve(); }
+    // Chain onto any existing readiness callback
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { if (typeof prev === 'function') { try { prev(); } catch(e){} } _ytApiState = 'ready'; resolve(); };
+    if (_ytApiState === 'loading') return; // resolve will fire via the shared callback
+    _ytApiState = 'loading';
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+  });
+}
+
+function destroyTrailerPlayer() {
+  _trailerToken++;
+  _ytPlayerReady = false;
+  _ytWantPlay = false;
+  if (_ytPlayer) {
+    try { _ytPlayer.destroy(); } catch(e) {}
+    _ytPlayer = null;
+  }
+}
+
+async function prepareTrailer(backdropWrap, key) {
+  destroyTrailerPlayer();
+  const token = ++_trailerToken;
+  await loadYouTubeAPI();
+  // Bail if the modal was closed or another film opened while the API loaded
+  if (token !== _trailerToken || !document.body.contains(backdropWrap)) return;
+
+  const mount = document.createElement('div');
+  mount.className = 'yt-mount';
+  backdropWrap.insertBefore(mount, backdropWrap.firstChild);
+
+  _ytPlayer = new YT.Player(mount, {
+    width: '100%',
+    height: '100%',
+    videoId: key,
+    playerVars: {
+      playsinline: 1,
+      rel: 0,
+      modestbranding: 1,
+      controls: 1,
+      origin: location.origin,
+    },
+    events: {
+      onReady: () => {
+        _ytPlayerReady = true;
+        if (_ytWantPlay) { try { _ytPlayer.playVideo(); } catch(e) {} }
+      },
+    },
+  });
+}
+
+function startTrailer(backdropWrap, key) {
+  backdropWrap.classList.add('playing');
+  if (_ytPlayer && _ytPlayerReady) {
+    try { _ytPlayer.playVideo(); return; } catch(e) {}
+  }
+  if (_ytPlayer && !_ytPlayerReady) {
+    // Player exists but not ready yet — play as soon as it is
+    _ytWantPlay = true;
+    return;
+  }
+  // Fallback: API never loaded — use a plain autoplay iframe
   const wrap = document.createElement('div');
   wrap.className = 'trailer-iframe-wrap';
   const iframe = document.createElement('iframe');
-
-  let src = 'https://www.youtube.com/embed/' + key
-          + '?autoplay=1&playsinline=1&rel=0&modestbranding=1';
-  // A valid http(s) origin is required by YouTube to allow embedding
-  // (this is what fixes "Erreur 153" — absent on file:// pages).
+  let src = 'https://www.youtube.com/embed/' + key + '?autoplay=1&playsinline=1&rel=0&modestbranding=1';
   if (location.protocol === 'http:' || location.protocol === 'https:') {
-    src += '&origin=' + encodeURIComponent(location.origin) + '&enablejsapi=1';
+    src += '&origin=' + encodeURIComponent(location.origin);
   }
   iframe.src = src;
   iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
   iframe.allowFullscreen = true;
-  // Ensure a referrer is sent so YouTube accepts the embed
   iframe.referrerPolicy = 'strict-origin-when-cross-origin';
   wrap.appendChild(iframe);
   backdropWrap.replaceWith(wrap);
@@ -2217,6 +2303,7 @@ function closeModal() {
   if (layer.classList.contains('open')) { closePersonLayer(); return; }
 
   _currentModalId = null;
+  destroyTrailerPlayer();
   const inner = document.getElementById('modalInner');
   inner.innerHTML = ''; // stops any playing trailer iframe
   document.getElementById('modalOverlay').classList.remove('open');
