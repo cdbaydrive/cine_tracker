@@ -1788,23 +1788,23 @@ async function openMovieModal(movieId) {
   inner.innerHTML = '<div class="loader-wrap"><div class="spinner"></div><span>Chargement…</span></div>';
 
   try {
-    const [detail, credits, providers, rdData, videosFr] = await Promise.all([
+    const [detail, credits, providers, rdData, videosEn] = await Promise.all([
       tmdb('/movie/' + movieId),
       tmdb('/movie/' + movieId + '/credits'),
       tmdb('/movie/' + movieId + '/watch/providers'),
       tmdb('/movie/' + movieId + '/release_dates'),
-      tmdb('/movie/' + movieId + '/videos'),
+      tmdbEn('/movie/' + movieId + '/videos'),
     ]);
 
     if (_currentModalId !== movieId) return;
 
-    // Pick the best trailer: prefer FR trailers, fall back to EN.
-    let trailerKey = pickTrailer(videosFr.results);
+    // Pick the best trailer: VO (en-US) by default, fall back to FR.
+    let trailerKey = pickTrailer(videosEn.results);
     if (!trailerKey) {
       try {
-        const videosEn = await tmdbEn('/movie/' + movieId + '/videos');
+        const videosFr = await tmdb('/movie/' + movieId + '/videos');
         if (_currentModalId !== movieId) return;
-        trailerKey = pickTrailer(videosEn.results);
+        trailerKey = pickTrailer(videosFr.results);
       } catch(e) {}
     }
 
@@ -2074,10 +2074,19 @@ function playTrailer(backdropWrap, key) {
   const wrap = document.createElement('div');
   wrap.className = 'trailer-iframe-wrap';
   const iframe = document.createElement('iframe');
-  // enablejsapi + playsinline help inline playback on iOS; autoplay needs the tap (already given)
-  iframe.src = 'https://www.youtube.com/embed/' + key + '?autoplay=1&playsinline=1&rel=0';
-  iframe.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture';
+
+  let src = 'https://www.youtube.com/embed/' + key
+          + '?autoplay=1&playsinline=1&rel=0&modestbranding=1';
+  // A valid http(s) origin is required by YouTube to allow embedding
+  // (this is what fixes "Erreur 153" — absent on file:// pages).
+  if (location.protocol === 'http:' || location.protocol === 'https:') {
+    src += '&origin=' + encodeURIComponent(location.origin) + '&enablejsapi=1';
+  }
+  iframe.src = src;
+  iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
   iframe.allowFullscreen = true;
+  // Ensure a referrer is sent so YouTube accepts the embed
+  iframe.referrerPolicy = 'strict-origin-when-cross-origin';
   wrap.appendChild(iframe);
   backdropWrap.replaceWith(wrap);
 }
