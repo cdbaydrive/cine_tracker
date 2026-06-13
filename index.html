@@ -315,6 +315,162 @@ header {
 .dot-cinema { width:6px;height:6px;border-radius:50%;background:var(--cinema);flex-shrink:0; }
 .dot-stream  { width:6px;height:6px;border-radius:50%;background:var(--stream);flex-shrink:0; }
 
+/* "Vu" toggle button on card (left of fav button) */
+.btn-watched {
+  position: absolute;
+  top: 7px;
+  right: 43px;
+  width: 28px;
+  height: 28px;
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(6px);
+  border: none;
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  z-index: 10;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.btn-watched:hover { background: var(--stream); color: #fff; transform: scale(1.15); }
+.btn-watched.on { background: var(--stream); color: #fff; }
+
+/* Dim watched posters slightly so the to-watch pile stands out */
+.movie-card.is-watched .card-poster-wrap { opacity: 0.62; }
+.movie-card.is-watched:hover .card-poster-wrap { opacity: 1; }
+
+/* "Vu" ribbon */
+.watched-ribbon {
+  position: absolute;
+  bottom: 7px;
+  left: 7px;
+  background: var(--stream);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 7px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  z-index: 5;
+}
+
+/* Star rating row under a watched fav card */
+.card-rating {
+  display: flex;
+  gap: 1px;
+  margin-top: 4px;
+}
+.card-rating .star {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--surface3);
+  line-height: 1;
+  transition: color 0.1s, transform 0.1s;
+}
+.card-rating .star.filled { color: var(--cinema); }
+.card-rating .star:hover { transform: scale(1.25); }
+.card-rating-value {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--cinema);
+  margin-left: 4px;
+  align-self: center;
+}
+
+/* Filter pills (Favoris: Tous / À voir / Vus) */
+.filter-pills {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 14px;
+  flex-wrap: wrap;
+}
+.filter-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink2);
+  transition: all 0.15s;
+  font-family: var(--font-body);
+}
+.filter-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.filter-pill .count { opacity: 0.7; font-size: 11px; margin-left: 3px; }
+
+/* "Nouveau en streaming" alert banner */
+.stream-alert {
+  margin: 0 20px 16px;
+  background: #f0fdf4;
+  border: 1.5px solid rgba(22,163,74,0.3);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.stream-alert-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--stream);
+}
+.stream-alert-head .close {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 15px;
+  background: none;
+  border: none;
+  line-height: 1;
+}
+.stream-alert-item {
+  font-size: 12px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.stream-alert-item:hover { color: var(--stream); }
+.stream-alert-item .mini-poster {
+  width: 26px; height: 39px; border-radius: 4px; object-fit: cover; flex-shrink: 0; background: var(--surface2);
+}
+
+/* Rating block inside modal */
+.modal-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 12px;
+}
+.modal-rating-row .m-star {
+  cursor: pointer;
+  font-size: 24px;
+  color: var(--surface3);
+  line-height: 1;
+  transition: color 0.1s, transform 0.1s;
+}
+.modal-rating-row .m-star.filled { color: var(--cinema); }
+.modal-rating-row .m-star:hover { transform: scale(1.2); }
+.modal-rating-clear {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 /* ─── SUB TABS (À venir / Agenda) ─── */
 .sub-tabs {
   display: flex;
@@ -621,7 +777,7 @@ header {
   <div class="tab-panel" id="tab-agenda">
     <div class="section-head">
       <div class="section-title">Agenda</div>
-      <div class="section-sub">Sorties à venir de vos favoris</div>
+      <div class="section-sub" id="agenda-sub">Sorties à venir de vos favoris</div>
     </div>
     <div class="sub-tabs">
       <button class="sub-btn active-cinema" id="subAgCinema" onclick="switchSubTab('agenda','cinema')">🎞 Cinéma</button>
@@ -640,6 +796,12 @@ header {
     <div class="section-head">
       <div class="section-title">Mes Favoris</div>
       <div class="section-sub" id="favs-count-label"></div>
+    </div>
+    <div id="streamAlert"></div>
+    <div class="filter-pills" id="favFilters" style="display:none">
+      <button class="filter-pill active" data-filter="all" onclick="setFavFilter('all',this)">Tous <span class="count" id="cnt-all"></span></button>
+      <button class="filter-pill" data-filter="towatch" onclick="setFavFilter('towatch',this)">À voir <span class="count" id="cnt-towatch"></span></button>
+      <button class="filter-pill" data-filter="watched" onclick="setFavFilter('watched',this)">Vus <span class="count" id="cnt-watched"></span></button>
     </div>
     <div class="movie-grid" id="grid-favs"></div>
   </div>
@@ -738,7 +900,7 @@ function switchTab(name, btn) {
 
   if (name === 'popular' && !tabLoaded.popular) { tabLoaded.popular = true; loadPopular(); }
   if (name === 'upcoming' && !tabLoaded.upcoming) { tabLoaded.upcoming = true; loadUpcoming(); }
-  if (name === 'favs') renderFavs();
+  if (name === 'favs') { renderStreamAlert(); renderFavs(); }
   if (name === 'agenda') renderAgenda();
 }
 
@@ -760,6 +922,9 @@ function switchSubTab(section, type) {
    FAVORITES
 ═══════════════════════════════════════════ */
 function isFav(movieId) { return S.favs.some(f => f.id === movieId); }
+function getFav(movieId) { return S.favs.find(f => f.id === movieId); }
+function isWatched(movieId) { const f = getFav(movieId); return !!(f && f.watched); }
+function getRating(movieId) { const f = getFav(movieId); return f && f.rating ? f.rating : 0; }
 
 function toggleFav(movie) {
   const idx = S.favs.findIndex(f => f.id === movie.id);
@@ -785,19 +950,57 @@ function toggleFav(movie) {
   }
 }
 
+// Mark a favorite as watched / to-watch. Only meaningful for favorites;
+// if the movie isn't a favorite yet, marking watched also adds it.
+function toggleWatched(movie) {
+  let fav = getFav(movie.id);
+  if (!fav) {
+    S.favs.push(movie);
+    fav = getFav(movie.id);
+    showToast('★ Ajouté · ✓ Vu');
+  } else {
+    fav.watched = !fav.watched;
+    showToast(fav.watched ? '✓ Marqué comme vu' : '↩ Remis à voir');
+    if (!fav.watched) fav.rating = 0; // clearing watched also clears rating
+  }
+  if (fav.watched === undefined) fav.watched = true;
+  saveState();
+  updateBadges();
+  // Refresh watched buttons in grids
+  document.querySelectorAll(`.btn-watched[data-id="${movie.id}"]`).forEach(btn => {
+    btn.classList.toggle('on', isWatched(movie.id));
+  });
+  // Refresh fav button (in case we just added)
+  document.querySelectorAll(`.btn-add-fav[data-id="${movie.id}"]`).forEach(btn => {
+    btn.classList.toggle('saved', isFav(movie.id));
+    btn.textContent = isFav(movie.id) ? '★' : '+';
+  });
+}
+
+function setRating(movieId, value) {
+  const fav = getFav(movieId);
+  if (!fav) return;
+  // Clicking the current value again clears it
+  fav.rating = (fav.rating === value) ? 0 : value;
+  if (fav.rating && !fav.watched) fav.watched = true; // rating implies watched
+  saveState();
+  updateBadges();
+}
+
 function updateBadges() {
   const fb = document.getElementById('badge-favs');
-  fb.textContent = S.favs.length || '';
-  fb.classList.toggle('visible', S.favs.length > 0);
+  const toWatch = S.favs.filter(f => !f.watched).length;
+  fb.textContent = toWatch || '';
+  fb.classList.toggle('visible', toWatch > 0);
 }
 
 /* ═══════════════════════════════════════════
    MAKE POSTER CARD
 ═══════════════════════════════════════════ */
 function makePosterEl(movie, options={}) {
-  // options: { showIcs: bool, showDays: bool, showStreamLabel: bool, streamLabel: string }
+  // options: { showIcs, showDays, showStreamLabel, streamLabel, favExtras, favControls }
   const card = document.createElement('div');
-  card.className = 'movie-card';
+  card.className = 'movie-card' + (options.favControls && isWatched(movie.id) ? ' is-watched' : '');
 
   const posterWrap = document.createElement('div');
   posterWrap.className = 'card-poster-wrap';
@@ -833,6 +1036,29 @@ function makePosterEl(movie, options={}) {
     toggleFav(movie);
   });
   posterWrap.appendChild(favBtn);
+
+  // Watched toggle (favorites view only)
+  if (options.favControls) {
+    const wBtn = document.createElement('button');
+    wBtn.className = 'btn-watched' + (isWatched(movie.id) ? ' on' : '');
+    wBtn.dataset.id = movie.id;
+    wBtn.textContent = '✓';
+    wBtn.title = isWatched(movie.id) ? 'Vu — cliquer pour remettre à voir' : 'Marquer comme vu';
+    wBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      toggleWatched(movie);
+      // re-render the favorites grid to move the card to the right filter
+      renderFavs();
+    });
+    posterWrap.appendChild(wBtn);
+
+    if (isWatched(movie.id)) {
+      const ribbon = document.createElement('div');
+      ribbon.className = 'watched-ribbon';
+      ribbon.textContent = '✓ Vu';
+      posterWrap.appendChild(ribbon);
+    }
+  }
 
   // ICS overlay button for upcoming cinema
   if (options.showIcs && movie.release_date) {
@@ -895,10 +1121,40 @@ function makePosterEl(movie, options={}) {
     }
   }
 
+  // Inline star rating for watched favorites (1-5 stars = /10 in steps of 2)
+  if (options.favControls && isWatched(movie.id)) {
+    info.appendChild(makeStarRow(movie.id, () => renderFavs()));
+  }
+
   card.appendChild(posterWrap);
   card.appendChild(info);
   card.addEventListener('click', () => openMovieModal(movie.id));
   return card;
+}
+
+// 5-star row mapping to a /10 rating (each star = 2 points).
+function makeStarRow(movieId, onChange) {
+  const wrap = document.createElement('div');
+  wrap.className = 'card-rating';
+  const current = getRating(movieId); // 0..10
+  for (let i = 1; i <= 5; i++) {
+    const star = document.createElement('span');
+    star.className = 'star' + (current >= i*2 ? ' filled' : '');
+    star.textContent = '★';
+    star.addEventListener('click', e => {
+      e.stopPropagation();
+      setRating(movieId, i*2);
+      if (onChange) onChange();
+    });
+    wrap.appendChild(star);
+  }
+  if (current) {
+    const val = document.createElement('span');
+    val.className = 'card-rating-value';
+    val.textContent = current + '/10';
+    wrap.appendChild(val);
+  }
+  return wrap;
 }
 
 function renderGrid(containerId, movies, options={}) {
@@ -1147,82 +1403,31 @@ async function fetchUpcomingStreamPage(first) {
 /* ═══════════════════════════════════════════
    AGENDA (upcoming from favorites)
 ═══════════════════════════════════════════ */
-async function renderAgenda() {
+/* ═══════════════════════════════════════════
+   AGENDA (upcoming from favorites)
+   Cache-first: paint last known result instantly, refresh in the
+   background, and only swap the display once the refresh completes.
+═══════════════════════════════════════════ */
+const AGENDA_CACHE_KEY = 'cinetracker-agenda-cache';
+let _agendaRefreshing = false;
+
+function loadAgendaCache() {
+  try { return JSON.parse(localStorage.getItem(AGENDA_CACHE_KEY)); } catch(e) { return null; }
+}
+function saveAgendaCache(cinema, stream) {
+  try { localStorage.setItem(AGENDA_CACHE_KEY, JSON.stringify({ cinema, stream, ts: Date.now() })); } catch(e) {}
+}
+
+// Pure render from data arrays (no network).
+function paintAgenda(cinema, stream) {
   const gridCinema = document.getElementById('grid-agenda-cinema');
-  const gridStream  = document.getElementById('grid-agenda-stream');
-
-  if (!S.favs.length) {
-    const msg = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">★</div><p>Ajoutez des films en favoris pour voir leurs sorties à venir.</p></div>';
-    gridCinema.innerHTML = msg;
-    gridStream.innerHTML = msg;
-    return;
-  }
-
-  gridCinema.innerHTML = '<div class="loader-wrap" style="grid-column:1/-1"><div class="spinner"></div><span>Chargement…</span></div>';
-  gridStream.innerHTML = '<div class="loader-wrap" style="grid-column:1/-1"><div class="spinner"></div><span>Chargement…</span></div>';
-
-  const today = new Date(); today.setHours(0,0,0,0);
-  const cinemaUpcoming = [];
-  const streamUpcoming = [];
-
-  for (const fav of S.favs) {
-    try {
-      // Get full movie details + release dates
-      const [detail, rdData, wpData] = await Promise.all([
-        tmdb('/movie/' + fav.id),
-        tmdb('/movie/' + fav.id + '/release_dates'),
-        tmdb('/movie/' + fav.id + '/watch/providers'),
-      ]);
-
-      const frReleases = (rdData.results || []).find(r => r.iso_3166_1 === 'FR');
-      function findRelease(country, types) {
-        if (!country) return null;
-        for (const t of types) {
-          const rd = country.release_dates.find(r => r.type === t && r.release_date);
-          if (rd) return rd.release_date;
-        }
-        return null;
-      }
-
-      const cinemaDate = findRelease(frReleases, [3]) || detail.release_date;
-      const digitalDate = findRelease(frReleases, [4]);
-
-      const fr = (wpData.results || {}).FR || {};
-      const platforms = fr.flatrate ? fr.flatrate.slice(0,4).map(p => p.provider_name) : [];
-
-      const movie = { ...fav, ...detail };
-
-      // Cinema upcoming: release date in the future
-      if (cinemaDate && new Date(cinemaDate) >= today) {
-        cinemaUpcoming.push({ ...movie, _cinemaDate: cinemaDate });
-      }
-
-      // Stream upcoming: digital date in future, OR already on a platform
-      if (digitalDate && new Date(digitalDate) >= today) {
-        streamUpcoming.push({ ...movie, _digitalDate: digitalDate, _streamPlatforms: platforms });
-      } else if (platforms.length && (!cinemaDate || new Date(cinemaDate) < today)) {
-        // Already streaming
-        streamUpcoming.push({ ...movie, _streamPlatforms: platforms });
-      }
-
-    } catch(e) {}
-    await new Promise(r => setTimeout(r, 100));
-  }
-
-  cinemaUpcoming.sort((a,b) => new Date(a._cinemaDate||a.release_date) - new Date(b._cinemaDate||b.release_date));
-  streamUpcoming.sort((a,b) => new Date(a._digitalDate||0) - new Date(b._digitalDate||0));
-
-  // Update badge
-  const total = cinemaUpcoming.length + streamUpcoming.length;
-  const ab = document.getElementById('badge-agenda');
-  ab.textContent = total || '';
-  ab.classList.toggle('visible', total > 0);
+  const gridStream = document.getElementById('grid-agenda-stream');
 
   gridCinema.innerHTML = '';
-  if (!cinemaUpcoming.length) {
+  if (!cinema.length) {
     gridCinema.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🎞</div><p>Aucune sortie cinéma à venir parmi vos favoris</p></div>';
   } else {
-    for (const m of cinemaUpcoming) {
+    for (const m of cinema) {
       gridCinema.appendChild(makePosterEl(m, {
         showIcs: true,
         showDays: true,
@@ -1232,49 +1437,198 @@ async function renderAgenda() {
   }
 
   gridStream.innerHTML = '';
-  if (!streamUpcoming.length) {
+  if (!stream.length) {
     gridStream.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">📺</div><p>Aucune sortie streaming à venir parmi vos favoris</p></div>';
   } else {
-    for (const m of streamUpcoming) {
-      const el = makePosterEl(m, {
+    for (const m of stream) {
+      gridStream.appendChild(makePosterEl(m, {
         showStreamLabel: true,
         streamLabel: m._streamPlatforms && m._streamPlatforms.length
           ? m._streamPlatforms.join(' · ')
           : (m._digitalDate ? fmtDate(m._digitalDate) : 'Bientôt'),
-      });
-      gridStream.appendChild(el);
+      }));
     }
+  }
+
+  const ab = document.getElementById('badge-agenda');
+  const total = cinema.length + stream.length;
+  ab.textContent = total || '';
+  ab.classList.toggle('visible', total > 0);
+}
+
+function renderAgenda() {
+  const gridCinema = document.getElementById('grid-agenda-cinema');
+  const gridStream = document.getElementById('grid-agenda-stream');
+
+  if (!S.favs.length) {
+    const msg = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">★</div><p>Ajoutez des films en favoris pour voir leurs sorties à venir.</p></div>';
+    gridCinema.innerHTML = msg;
+    gridStream.innerHTML = msg;
+    try { localStorage.removeItem(AGENDA_CACHE_KEY); } catch(e) {}
+    document.getElementById('badge-agenda').classList.remove('visible');
+    return;
+  }
+
+  // 1) Paint cached result instantly (no spinner) if we have one.
+  const cache = loadAgendaCache();
+  if (cache && cache.cinema && cache.stream) {
+    paintAgenda(cache.cinema, cache.stream);
+  } else {
+    gridCinema.innerHTML = '<div class="loader-wrap" style="grid-column:1/-1"><div class="spinner"></div><span>Chargement…</span></div>';
+    gridStream.innerHTML = '<div class="loader-wrap" style="grid-column:1/-1"><div class="spinner"></div><span>Chargement…</span></div>';
+  }
+
+  // 2) Refresh in the background; the display only changes once done.
+  refreshAgenda();
+}
+
+async function refreshAgenda() {
+  if (_agendaRefreshing) return;
+  _agendaRefreshing = true;
+
+  const sub = document.getElementById('agenda-sub');
+  const subPrev = sub ? sub.textContent : '';
+  if (sub) sub.textContent = 'Mise à jour…';
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const cinemaUpcoming = [];
+  const streamUpcoming = [];
+
+  function findRelease(country, types) {
+    if (!country) return null;
+    for (const t of types) {
+      const rd = country.release_dates.find(r => r.type === t && r.release_date);
+      if (rd) return rd.release_date;
+    }
+    return null;
+  }
+
+  try {
+    for (const fav of S.favs) {
+      if (fav.watched) continue; // watched movies no longer "upcoming"
+      try {
+        const [detail, rdData, wpData] = await Promise.all([
+          tmdb('/movie/' + fav.id),
+          tmdb('/movie/' + fav.id + '/release_dates'),
+          tmdb('/movie/' + fav.id + '/watch/providers'),
+        ]);
+
+        const frReleases = (rdData.results || []).find(r => r.iso_3166_1 === 'FR');
+        const cinemaDate = findRelease(frReleases, [3]) || detail.release_date;
+        const digitalDate = findRelease(frReleases, [4]);
+
+        const fr = (wpData.results || {}).FR || {};
+        const platforms = fr.flatrate ? fr.flatrate.slice(0,4).map(p => p.provider_name) : [];
+
+        // Keep only the lightweight fields paintAgenda needs (serializable cache)
+        const base = {
+          id: detail.id,
+          title: detail.title,
+          original_title: detail.original_title,
+          poster_path: detail.poster_path,
+          backdrop_path: detail.backdrop_path,
+          release_date: detail.release_date,
+          vote_average: detail.vote_average,
+        };
+
+        if (cinemaDate && new Date(cinemaDate) >= today) {
+          cinemaUpcoming.push({ ...base, _cinemaDate: cinemaDate });
+        }
+        if (digitalDate && new Date(digitalDate) >= today) {
+          streamUpcoming.push({ ...base, _digitalDate: digitalDate, _streamPlatforms: platforms });
+        } else if (platforms.length && (!cinemaDate || new Date(cinemaDate) < today)) {
+          streamUpcoming.push({ ...base, _streamPlatforms: platforms });
+        }
+      } catch(e) {}
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    cinemaUpcoming.sort((a,b) => new Date(a._cinemaDate||a.release_date) - new Date(b._cinemaDate||b.release_date));
+    streamUpcoming.sort((a,b) => new Date(a._digitalDate||0) - new Date(b._digitalDate||0));
+
+    // Persist + swap display (only now that the refresh is complete)
+    saveAgendaCache(cinemaUpcoming, streamUpcoming);
+    if (document.getElementById('tab-agenda').classList.contains('active')) {
+      paintAgenda(cinemaUpcoming, streamUpcoming);
+    } else {
+      // tab not visible: still update the badge
+      const ab = document.getElementById('badge-agenda');
+      const total = cinemaUpcoming.length + streamUpcoming.length;
+      ab.textContent = total || '';
+      ab.classList.toggle('visible', total > 0);
+    }
+  } finally {
+    if (sub) sub.textContent = subPrev || 'Sorties à venir de vos favoris';
+    _agendaRefreshing = false;
   }
 }
 
 /* ═══════════════════════════════════════════
    FAVORITES RENDER
 ═══════════════════════════════════════════ */
+let _favFilter = 'all';
+
+function setFavFilter(filter, btn) {
+  _favFilter = filter;
+  document.querySelectorAll('#favFilters .filter-pill').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderFavs();
+}
+
 async function renderFavs() {
   const grid = document.getElementById('grid-favs');
   const label = document.getElementById('favs-count-label');
+  const filters = document.getElementById('favFilters');
 
   if (!S.favs.length) {
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">★</div><p>Ajoutez des films avec le bouton +</p></div>';
     label.textContent = '';
+    filters.style.display = 'none';
     return;
   }
 
-  label.textContent = S.favs.length + ' film' + (S.favs.length > 1 ? 's' : '');
-  grid.innerHTML = '';
+  // Counts
+  const total = S.favs.length;
+  const watched = S.favs.filter(f => f.watched).length;
+  const toWatch = total - watched;
+  document.getElementById('cnt-all').textContent = total;
+  document.getElementById('cnt-towatch').textContent = toWatch;
+  document.getElementById('cnt-watched').textContent = watched;
+  filters.style.display = 'flex';
 
-  for (const fav of S.favs) {
+  label.textContent = total + ' film' + (total > 1 ? 's' : '');
+
+  // Apply filter
+  let list = S.favs;
+  if (_favFilter === 'towatch') list = S.favs.filter(f => !f.watched);
+  else if (_favFilter === 'watched') list = S.favs.filter(f => f.watched);
+
+  // Sort: to-watch first by soonest release; watched by rating desc
+  list = [...list].sort((a, b) => {
+    if (!!a.watched !== !!b.watched) return a.watched ? 1 : -1;
+    if (a.watched && b.watched) return (b.rating || 0) - (a.rating || 0);
+    return new Date(a.release_date || 0) - new Date(b.release_date || 0);
+  });
+
+  grid.innerHTML = '';
+  if (!list.length) {
+    const msg = _favFilter === 'watched' ? 'Aucun film vu pour l\'instant' : 'Aucun film à voir — tout est vu !';
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🎬</div><p>' + msg + '</p></div>';
+    return;
+  }
+
+  for (const fav of list) {
     // Fetch streaming platforms if not cached
     if (!fav._providers) {
       try {
         const wp = await tmdb('/movie/' + fav.id + '/watch/providers');
-        const fr = (wp.results || {}).FR || {};
-        fav._streamPlatforms = fr.flatrate ? fr.flatrate.slice(0,3).map(p => p.provider_name) : [];
+        const frp = (wp.results || {}).FR || {};
+        fav._streamPlatforms = frp.flatrate ? frp.flatrate.slice(0,3).map(p => p.provider_name) : [];
         fav._providers = true;
         saveState();
       } catch(e) {}
     }
-    grid.appendChild(makePosterEl(fav, { favExtras: true }));
+    grid.appendChild(makePosterEl(fav, { favExtras: true, favControls: true }));
   }
 }
 
@@ -1474,8 +1828,14 @@ async function openMovieModal(movieId) {
     favBtn.id = 'modal-fav-btn';
     favBtn.dataset.id = movieId;
     favBtn.innerHTML = isFav(movieId) ? '★ Dans mes favoris' : '☆ Ajouter aux favoris';
-    favBtn.addEventListener('click', () => toggleFav(favMovie));
+    favBtn.addEventListener('click', () => { toggleFav(favMovie); renderModalFavControls(movieId, favMovie); });
     content.appendChild(favBtn);
+
+    // Watched + rating controls (shown when the movie is a favorite)
+    const favControls = document.createElement('div');
+    favControls.id = 'modal-fav-controls';
+    content.appendChild(favControls);
+    renderModalFavControls(movieId, favMovie, favControls);
 
     inner.appendChild(content);
 
@@ -1484,10 +1844,71 @@ async function openMovieModal(movieId) {
   }
 }
 
+// Render the "Vu" toggle + star rating block inside the open modal.
+function renderModalFavControls(movieId, favMovie, container) {
+  const box = container || document.getElementById('modal-fav-controls');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!isFav(movieId)) return; // controls only relevant for favorites
+
+  // Watched toggle button
+  const wBtn = document.createElement('button');
+  wBtn.className = 'modal-fav-btn' + (isWatched(movieId) ? ' saved' : '');
+  wBtn.style.marginTop = '10px';
+  wBtn.innerHTML = isWatched(movieId) ? '✓ Vu — remettre à voir' : '✓ Marquer comme vu';
+  wBtn.addEventListener('click', () => {
+    toggleWatched(favMovie);
+    renderModalFavControls(movieId, favMovie, box);
+  });
+  box.appendChild(wBtn);
+
+  // Star rating (only once watched)
+  if (isWatched(movieId)) {
+    const rTitle = document.createElement('div');
+    rTitle.className = 'modal-section-title';
+    rTitle.textContent = 'Ma note';
+    rTitle.style.marginBottom = '6px';
+    box.appendChild(rTitle);
+
+    const row = document.createElement('div');
+    row.className = 'modal-rating-row';
+    const current = getRating(movieId);
+    for (let i = 1; i <= 5; i++) {
+      const star = document.createElement('span');
+      star.className = 'm-star' + (current >= i*2 ? ' filled' : '');
+      star.textContent = '★';
+      star.addEventListener('click', () => {
+        setRating(movieId, i*2);
+        renderModalFavControls(movieId, favMovie, box);
+      });
+      row.appendChild(star);
+    }
+    if (current) {
+      const val = document.createElement('span');
+      val.className = 'card-rating-value';
+      val.style.fontSize = '13px';
+      val.textContent = current + '/10';
+      row.appendChild(val);
+      const clr = document.createElement('button');
+      clr.className = 'modal-rating-clear';
+      clr.textContent = 'Effacer';
+      clr.addEventListener('click', () => {
+        setRating(movieId, current); // clicking same value clears
+        renderModalFavControls(movieId, favMovie, box);
+      });
+      row.appendChild(clr);
+    }
+    box.appendChild(row);
+  }
+}
+
 function closeModal() {
   _currentModalId = null;
   document.getElementById('modalOverlay').classList.remove('open');
   document.body.style.overflow = '';
+  // Reflect any changes made in the modal (note, vu/à voir) on the active tab
+  if (document.getElementById('tab-favs').classList.contains('active')) renderFavs();
+  else if (document.getElementById('tab-agenda').classList.contains('active')) renderAgenda();
 }
 
 function handleModalClick(e) {
@@ -1567,10 +1988,104 @@ function importData(event) {
 }
 
 /* ═══════════════════════════════════════════
+   STREAMING AVAILABILITY DETECTION
+   Daily check: for each "to-watch" favorite, compare current FR
+   streaming platforms against the last stored snapshot. Newly added
+   platforms surface as an alert banner in the Favoris tab.
+═══════════════════════════════════════════ */
+const STREAM_CHECK_KEY = 'cinetracker-stream-check';
+const ONE_DAY = 24 * 60 * 60 * 1000;
+let _newlyAvailable = []; // [{id, title, poster_path, added:[platforms]}]
+
+async function checkStreamingAvailability(force=false) {
+  if (!S.favs.length) return;
+
+  // Daily throttle (cohérent avec le cache 12h/quotidien des autres apps)
+  let lastCheck = 0;
+  try { lastCheck = Number(localStorage.getItem(STREAM_CHECK_KEY)) || 0; } catch(e) {}
+  if (!force && (Date.now() - lastCheck) < ONE_DAY) return;
+
+  const toCheck = S.favs.filter(f => !f.watched);
+  const found = [];
+
+  for (const fav of toCheck) {
+    try {
+      const wp = await tmdb('/movie/' + fav.id + '/watch/providers');
+      const frp = (wp.results || {}).FR || {};
+      const current = frp.flatrate ? frp.flatrate.map(p => p.provider_name) : [];
+
+      const prev = Array.isArray(fav._streamSnapshot) ? fav._streamSnapshot : null;
+      // Newly added platforms = in current but not in previous snapshot
+      if (prev !== null) {
+        const added = current.filter(p => !prev.includes(p));
+        if (added.length) {
+          found.push({ id: fav.id, title: fav.title || fav.original_title, poster_path: fav.poster_path, added });
+        }
+      }
+      // Update snapshot + the display field used by cards
+      fav._streamSnapshot = current;
+      fav._streamPlatforms = current.slice(0, 3);
+      fav._providers = true;
+    } catch(e) {}
+    await new Promise(r => setTimeout(r, 70));
+  }
+
+  saveState();
+  try { localStorage.setItem(STREAM_CHECK_KEY, String(Date.now())); } catch(e) {}
+
+  _newlyAvailable = found;
+  if (found.length) {
+    showToast('📺 ' + found.length + ' favori(s) maintenant en streaming');
+    renderStreamAlert();
+  }
+}
+
+function renderStreamAlert() {
+  const box = document.getElementById('streamAlert');
+  if (!box) return;
+  if (!_newlyAvailable.length) { box.innerHTML = ''; return; }
+
+  box.innerHTML = '';
+  const alert = document.createElement('div');
+  alert.className = 'stream-alert';
+
+  const head = document.createElement('div');
+  head.className = 'stream-alert-head';
+  const headTxt = document.createElement('span');
+  headTxt.textContent = '📺 Nouveau en streaming';
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'close';
+  closeBtn.textContent = '✕';
+  closeBtn.addEventListener('click', () => { _newlyAvailable = []; box.innerHTML = ''; });
+  head.appendChild(headTxt); head.appendChild(closeBtn);
+  alert.appendChild(head);
+
+  for (const item of _newlyAvailable) {
+    const row = document.createElement('div');
+    row.className = 'stream-alert-item';
+    if (item.poster_path) {
+      const img = document.createElement('img');
+      img.className = 'mini-poster';
+      img.src = IMG_BASE + '/w92' + item.poster_path; img.alt = '';
+      row.appendChild(img);
+    }
+    const txt = document.createElement('span');
+    txt.innerHTML = '<strong>' + h(item.title) + '</strong> · ' + h(item.added.join(', '));
+    row.appendChild(txt);
+    row.addEventListener('click', () => openMovieModal(item.id));
+    alert.appendChild(row);
+  }
+  box.appendChild(alert);
+}
+
+/* ═══════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════ */
 loadState();
 updateBadges();
+// Streaming availability check runs in the background (daily throttle).
+// Delayed so it doesn't compete with the first paint.
+setTimeout(() => { checkStreamingAvailability().catch(()=>{}); }, 1200);
 // Popular loads on first visit to that tab
 </script>
 </body>
