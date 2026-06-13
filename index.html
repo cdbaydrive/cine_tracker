@@ -630,6 +630,111 @@ header {
 
 .modal-close-btn { position:absolute;top:12px;right:12px;width:32px;height:32px;background:rgba(255,255,255,0.85);backdrop-filter:blur(4px);border:1px solid var(--rule);border-radius:50%;color:var(--ink);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10; }
 
+/* ─── TRAILER ─── */
+.trailer-play-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 6;
+  background: rgba(0,0,0,0.15);
+  transition: background 0.15s;
+}
+.trailer-play-btn:hover { background: rgba(0,0,0,0.28); }
+.trailer-play-circle {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+  transition: transform 0.15s;
+}
+.trailer-play-btn:hover .trailer-play-circle { transform: scale(1.1); }
+.trailer-play-circle svg { width: 24px; height: 24px; fill: var(--accent2); margin-left: 3px; }
+.trailer-label {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 12px;
+  border-radius: 14px;
+  z-index: 6;
+  letter-spacing: 0.03em;
+}
+.trailer-iframe-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+  flex-shrink: 0;
+}
+.trailer-iframe-wrap iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+/* ─── FILMOGRAPHY OVERLAY (stacked over the movie modal) ─── */
+.person-layer {
+  position: absolute;
+  inset: 0;
+  background: var(--bg2);
+  z-index: 20;
+  display: none;
+  flex-direction: column;
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+}
+@media (min-width: 600px) { .person-layer { border-radius: 20px; } }
+.person-layer.open { display: flex; }
+.person-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--rule);
+  flex-shrink: 0;
+}
+.person-back {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.person-back:hover { background: var(--surface2); }
+.person-photo { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--surface2); flex-shrink: 0; }
+.person-photo-ph { width: 44px; height: 44px; border-radius: 50%; background: var(--surface2); display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--muted);flex-shrink:0; }
+.person-name { font-family: var(--font-title); font-size: 20px; letter-spacing: 0.4px; color: var(--ink); line-height: 1.1; }
+.person-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.person-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; flex: 1; }
+.person-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 14px;
+}
+.pfilm { cursor: pointer; }
+.pfilm-poster-wrap { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 2/3; background: var(--surface2); box-shadow: var(--shadow); }
+.pfilm-poster { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pfilm-poster-ph { width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--muted); }
+.pfilm-title { font-size: 11px; font-weight: 500; color: var(--ink); margin-top: 5px; line-height: 1.25; display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+.pfilm-year { font-size: 10px; color: var(--muted); margin-top: 1px; }
+.pfilm-char { font-size: 10px; color: var(--muted); margin-top: 1px; font-style: italic; display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden; }
+
+/* Make cast photos look tappable */
+.cast-item.clickable { cursor: pointer; }
+.cast-item.clickable .cast-photo, .cast-item.clickable .cast-photo-ph { transition: transform 0.12s, box-shadow 0.12s; }
+.cast-item.clickable:hover .cast-photo, .cast-item.clickable:hover .cast-photo-ph { transform: scale(1.08); box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
+
 .modal-fav-btn { display:flex;align-items:center;gap:6px;padding:11px 18px;border-radius:var(--radius);border:1.5px solid var(--rule);background:var(--surface2);color:var(--ink2);font-family:var(--font-body);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;width:100%;justify-content:center;margin-top:20px; }
 .modal-fav-btn:hover { background:var(--accent);color:#fff;border-color:var(--accent); }
 .modal-fav-btn.saved { background:rgba(1,180,228,0.1);color:var(--accent);border-color:rgba(1,180,228,0.4); }
@@ -813,6 +918,10 @@ header {
   <div class="modal-sheet" id="modalSheet">
     <button class="modal-close-btn" onclick="closeModal()">✕</button>
     <div id="modalInner" class="modal-scroll"></div>
+    <div class="person-layer" id="personLayer">
+      <div class="person-header" id="personHeader"></div>
+      <div class="person-scroll" id="personScroll"></div>
+    </div>
   </div>
 </div>
 
@@ -885,6 +994,34 @@ async function tmdb(path, params={}) {
   const r = await fetch(url.toString());
   if (!r.ok) throw new Error('TMDB ' + r.status);
   return r.json();
+}
+
+// Same call but in English (used as a fallback for trailers, which are
+// often missing in the FR localization).
+async function tmdbEn(path, params={}) {
+  const url = new URL(BASE_URL + path);
+  url.searchParams.set('api_key', API_KEY);
+  url.searchParams.set('language', 'en-US');
+  for (const [k,v] of Object.entries(params)) url.searchParams.set(k, v);
+  const r = await fetch(url.toString());
+  if (!r.ok) throw new Error('TMDB ' + r.status);
+  return r.json();
+}
+
+// Choose the most relevant YouTube trailer key from a /videos result list.
+// Priority: official Trailer > any Trailer > Teaser. YouTube only.
+function pickTrailer(videos) {
+  const yt = (videos || []).filter(v => v.site === 'YouTube' && v.key);
+  if (!yt.length) return null;
+  const score = v => {
+    let s = 0;
+    if (v.type === 'Trailer') s += 10;
+    else if (v.type === 'Teaser') s += 5;
+    if (v.official) s += 3;
+    return s;
+  };
+  yt.sort((a,b) => score(b) - score(a));
+  return yt[0].key;
 }
 
 /* ═══════════════════════════════════════════
@@ -1642,19 +1779,34 @@ async function openMovieModal(movieId) {
   const overlay = document.getElementById('modalOverlay');
   const inner   = document.getElementById('modalInner');
 
+  // Ensure the filmography layer isn't lingering from a previous view
+  document.getElementById('personLayer').classList.remove('open');
+
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
+  inner.scrollTop = 0;
   inner.innerHTML = '<div class="loader-wrap"><div class="spinner"></div><span>Chargement…</span></div>';
 
   try {
-    const [detail, credits, providers, rdData] = await Promise.all([
+    const [detail, credits, providers, rdData, videosFr] = await Promise.all([
       tmdb('/movie/' + movieId),
       tmdb('/movie/' + movieId + '/credits'),
       tmdb('/movie/' + movieId + '/watch/providers'),
       tmdb('/movie/' + movieId + '/release_dates'),
+      tmdb('/movie/' + movieId + '/videos'),
     ]);
 
     if (_currentModalId !== movieId) return;
+
+    // Pick the best trailer: prefer FR trailers, fall back to EN.
+    let trailerKey = pickTrailer(videosFr.results);
+    if (!trailerKey) {
+      try {
+        const videosEn = await tmdbEn('/movie/' + movieId + '/videos');
+        if (_currentModalId !== movieId) return;
+        trailerKey = pickTrailer(videosEn.results);
+      } catch(e) {}
+    }
 
     const fr = (providers.results || {}).FR || {};
     const streamPlatforms = fr.flatrate || [];
@@ -1689,7 +1841,7 @@ async function openMovieModal(movieId) {
 
     inner.innerHTML = '';
 
-    // Backdrop
+    // Backdrop (doubles as a trailer thumbnail when a trailer exists)
     const backdropWrap = document.createElement('div');
     backdropWrap.className = 'modal-backdrop-wrap';
     if (backdropUrl) {
@@ -1702,6 +1854,18 @@ async function openMovieModal(movieId) {
     }
     const grad = document.createElement('div'); grad.className = 'modal-backdrop-grad';
     backdropWrap.appendChild(grad);
+
+    if (trailerKey) {
+      const playBtn = document.createElement('div');
+      playBtn.className = 'trailer-play-btn';
+      playBtn.innerHTML = '<div class="trailer-play-circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>';
+      const label = document.createElement('div');
+      label.className = 'trailer-label';
+      label.textContent = '▶ Bande-annonce';
+      backdropWrap.appendChild(playBtn);
+      backdropWrap.appendChild(label);
+      playBtn.addEventListener('click', () => playTrailer(backdropWrap, trailerKey));
+    }
     inner.appendChild(backdropWrap);
 
     const content = document.createElement('div');
@@ -1805,7 +1969,7 @@ async function openMovieModal(movieId) {
       content.appendChild(castTitle);
       const castRow = document.createElement('div'); castRow.className = 'cast-row';
       for (const actor of cast) {
-        const item = document.createElement('div'); item.className = 'cast-item';
+        const item = document.createElement('div'); item.className = 'cast-item clickable';
         if (actor.profile_path) {
           const img = document.createElement('img'); img.className = 'cast-photo';
           img.src = IMG_BASE + '/w92' + actor.profile_path; img.alt = ''; img.loading = 'lazy';
@@ -1817,6 +1981,7 @@ async function openMovieModal(movieId) {
         const name = document.createElement('div'); name.className = 'cast-name'; name.textContent = actor.name;
         const char = document.createElement('div'); char.className = 'cast-char'; char.textContent = actor.character;
         item.appendChild(name); item.appendChild(char);
+        item.addEventListener('click', () => openPersonLayer(actor.id, actor.name, actor.profile_path));
         castRow.appendChild(item);
       }
       content.appendChild(castRow);
@@ -1902,8 +2067,149 @@ function renderModalFavControls(movieId, favMovie, container) {
   }
 }
 
+/* ═══════════════════════════════════════════
+   TRAILER
+═══════════════════════════════════════════ */
+function playTrailer(backdropWrap, key) {
+  const wrap = document.createElement('div');
+  wrap.className = 'trailer-iframe-wrap';
+  const iframe = document.createElement('iframe');
+  // enablejsapi + playsinline help inline playback on iOS; autoplay needs the tap (already given)
+  iframe.src = 'https://www.youtube.com/embed/' + key + '?autoplay=1&playsinline=1&rel=0';
+  iframe.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture';
+  iframe.allowFullscreen = true;
+  wrap.appendChild(iframe);
+  backdropWrap.replaceWith(wrap);
+}
+
+/* ═══════════════════════════════════════════
+   PERSON FILMOGRAPHY (stacked layer over modal)
+═══════════════════════════════════════════ */
+let _personReqId = 0;
+
+async function openPersonLayer(personId, personName, profilePath) {
+  const layer  = document.getElementById('personLayer');
+  const header = document.getElementById('personHeader');
+  const scroll = document.getElementById('personScroll');
+  const reqId  = ++_personReqId;
+
+  // Header
+  header.innerHTML = '';
+  const back = document.createElement('button');
+  back.className = 'person-back';
+  back.textContent = '‹';
+  back.title = 'Retour';
+  back.addEventListener('click', closePersonLayer);
+  header.appendChild(back);
+
+  if (profilePath) {
+    const img = document.createElement('img');
+    img.className = 'person-photo';
+    img.src = IMG_BASE + '/w185' + profilePath; img.alt = '';
+    header.appendChild(img);
+  } else {
+    const ph = document.createElement('div'); ph.className = 'person-photo-ph'; ph.textContent = '👤';
+    header.appendChild(ph);
+  }
+  const titleBlock = document.createElement('div');
+  const nm = document.createElement('div'); nm.className = 'person-name'; nm.textContent = personName;
+  const sub = document.createElement('div'); sub.className = 'person-sub'; sub.textContent = 'Filmographie';
+  titleBlock.appendChild(nm); titleBlock.appendChild(sub);
+  header.appendChild(titleBlock);
+
+  scroll.innerHTML = '<div class="loader-wrap"><div class="spinner"></div><span>Chargement…</span></div>';
+  layer.classList.add('open');
+  scroll.scrollTop = 0;
+
+  try {
+    const data = await tmdb('/person/' + personId + '/movie_credits');
+    if (reqId !== _personReqId) return; // a newer request superseded this
+
+    // Acting roles, most recent first, de-duplicated by movie id
+    const seen = new Set();
+    let films = (data.cast || [])
+      .filter(m => m.id && (m.poster_path || m.title))
+      .filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; })
+      .sort((a,b) => {
+        const da = a.release_date || '0000';
+        const db = b.release_date || '0000';
+        return db.localeCompare(da);
+      });
+
+    const count = films.length;
+    sub.textContent = count + ' film' + (count > 1 ? 's' : '');
+
+    scroll.innerHTML = '';
+    if (!films.length) {
+      scroll.innerHTML = '<div class="empty-state"><div class="icon">🎬</div><p>Aucun film trouvé</p></div>';
+      return;
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'person-grid';
+    for (const m of films) {
+      const card = document.createElement('div');
+      card.className = 'pfilm';
+
+      const pw = document.createElement('div');
+      pw.className = 'pfilm-poster-wrap';
+      if (m.poster_path) {
+        const img = document.createElement('img');
+        img.className = 'pfilm-poster';
+        img.src = IMG_BASE + '/w185' + m.poster_path; img.alt = ''; img.loading = 'lazy';
+        pw.appendChild(img);
+      } else {
+        const ph = document.createElement('div'); ph.className = 'pfilm-poster-ph'; ph.textContent = '🎬';
+        pw.appendChild(ph);
+      }
+      card.appendChild(pw);
+
+      const t = document.createElement('div');
+      t.className = 'pfilm-title';
+      t.textContent = m.title || m.original_title;
+      card.appendChild(t);
+
+      const year = (m.release_date || '').slice(0,4);
+      if (year) {
+        const y = document.createElement('div'); y.className = 'pfilm-year'; y.textContent = year;
+        card.appendChild(y);
+      }
+      if (m.character) {
+        const c = document.createElement('div'); c.className = 'pfilm-char'; c.textContent = m.character;
+        card.appendChild(c);
+      }
+
+      // Tapping a film opens it in the main modal (under this layer),
+      // then closes the layer to reveal it.
+      card.addEventListener('click', () => {
+        openMovieModal(m.id);
+        closePersonLayer();
+      });
+      grid.appendChild(card);
+    }
+    scroll.appendChild(grid);
+
+  } catch(e) {
+    if (reqId !== _personReqId) return;
+    scroll.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Erreur : ' + h(e.message) + '</p></div>';
+  }
+}
+
+function closePersonLayer() {
+  _personReqId++; // invalidate any in-flight request
+  const layer = document.getElementById('personLayer');
+  layer.classList.remove('open');
+  document.getElementById('personScroll').innerHTML = '';
+}
+
 function closeModal() {
+  // If the filmography layer is open, close just that first (back-to-modal)
+  const layer = document.getElementById('personLayer');
+  if (layer.classList.contains('open')) { closePersonLayer(); return; }
+
   _currentModalId = null;
+  const inner = document.getElementById('modalInner');
+  inner.innerHTML = ''; // stops any playing trailer iframe
   document.getElementById('modalOverlay').classList.remove('open');
   document.body.style.overflow = '';
   // Reflect any changes made in the modal (note, vu/à voir) on the active tab
