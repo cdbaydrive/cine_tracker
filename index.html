@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Ciné Tracker — v1.1 -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -78,6 +79,14 @@ header {
 }
 
 .logo span { color: var(--accent); }
+.logo-wrap { display: flex; align-items: baseline; gap: 7px; }
+.app-version {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0;
+}
 
 .header-actions { display: flex; gap: 8px; align-items: center; }
 
@@ -96,6 +105,26 @@ header {
   transition: all 0.15s;
 }
 .btn-icon:hover { background: var(--surface3); color: var(--ink); }
+
+/* Region toggle */
+.region-toggle {
+  background: var(--surface2);
+  border: 1.5px solid var(--rule);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  height: 32px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.region-toggle:hover { background: var(--surface3); }
 
 /* ─── TABS NAV ─── */
 .tabs-nav {
@@ -679,15 +708,6 @@ header {
 }
 .trailer-iframe-wrap iframe { width: 100%; height: 100%; border: 0; display: block; }
 
-/* Pre-initialized YouTube player sitting behind the thumbnail overlay */
-.yt-mount { position: absolute; inset: 0; z-index: 1; }
-.yt-mount iframe { width: 100%; height: 100%; border: 0; display: block; }
-.modal-backdrop-wrap.playing { height: auto; aspect-ratio: 16/9; }
-.modal-backdrop-wrap.playing .modal-backdrop,
-.modal-backdrop-wrap.playing .modal-backdrop-grad,
-.modal-backdrop-wrap.playing .trailer-play-btn,
-.modal-backdrop-wrap.playing .trailer-label { display: none; }
-
 /* ─── FILMOGRAPHY OVERLAY (stacked over the movie modal) ─── */
 .person-layer {
   position: absolute;
@@ -726,6 +746,56 @@ header {
 .person-name { font-family: var(--font-title); font-size: 20px; letter-spacing: 0.4px; color: var(--ink); line-height: 1.1; }
 .person-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .person-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; flex: 1; }
+
+/* Actor bio block */
+.person-bio-block { margin-bottom: 20px; }
+.person-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.person-fact {
+  background: var(--surface2);
+  border-radius: 20px;
+  padding: 5px 11px;
+  font-size: 11px;
+  color: var(--ink2);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.person-fact strong { color: var(--ink); font-weight: 600; }
+.person-bio {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink2);
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+}
+.person-bio.collapsed {
+  max-height: 60px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent);
+  mask-image: linear-gradient(to bottom, #000 60%, transparent);
+}
+.person-bio-toggle {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 0 0;
+}
+.person-grid-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
 .person-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
@@ -818,8 +888,12 @@ header {
 
 <header>
   <div class="header-top">
-    <div class="logo">CINÉ<span>TRACKER</span></div>
+    <div class="logo-wrap">
+      <div class="logo">CINÉ<span>TRACKER</span></div>
+      <span class="app-version" id="appVersion"></span>
+    </div>
     <div class="header-actions">
+      <button class="region-toggle" id="regionToggle" onclick="toggleRegion()" title="Changer de région"></button>
       <button class="btn-icon" onclick="exportData()" title="Exporter favoris">⬆</button>
       <label class="btn-icon" title="Importer favoris" style="cursor:pointer">
         ⬇<input type="file" accept=".json" style="display:none" onchange="importData(event)">
@@ -945,6 +1019,19 @@ const API_KEY  = '729cf9f096e955020bb7d27c547be637';
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_BASE = 'https://image.tmdb.org/t/p';
 const STORE_KEY = 'cinetracker-v2';
+const REGION_KEY = 'cinetracker-region';
+const APP_VERSION = '1.1';
+
+// Region drives language (metadata), region (release lists) and
+// watch_region (streaming providers). FR or US.
+const REGIONS = {
+  FR: { lang: 'fr-FR', locale: 'fr-FR', label: '🇫🇷 France' },
+  US: { lang: 'en-US', locale: 'en-US', label: '🇺🇸 US' },
+};
+let REGION = 'FR';
+function curLang()   { return (REGIONS[REGION] || REGIONS.FR).lang; }
+function curLocale() { return (REGIONS[REGION] || REGIONS.FR).locale; }
+function otherRegion() { return REGION === 'FR' ? 'US' : 'FR'; }
 
 /* ═══════════════════════════════════════════
    STATE
@@ -955,6 +1042,10 @@ function loadState() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) S = { ...S, ...JSON.parse(raw) };
+  } catch(e) {}
+  try {
+    const rg = localStorage.getItem(REGION_KEY);
+    if (rg && REGIONS[rg]) REGION = rg;
   } catch(e) {}
 }
 
@@ -972,7 +1063,7 @@ function h(s) {
 
 function fmtDate(dateStr) {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
+  return new Date(dateStr).toLocaleDateString(curLocale(), { day:'numeric', month:'short', year:'numeric' });
 }
 
 function daysUntil(dateStr) {
@@ -988,6 +1079,25 @@ function daysLabel(n) {
   return `Dans ${n} j.`;
 }
 
+// A movie counts as released once its (cinema) release date is today or past.
+// No date → treat as released (avoid hiding controls on unknown dates).
+function isReleased(movie) {
+  const d = movie && movie.release_date;
+  if (!d) return true;
+  return daysUntil(d) <= 0;
+}
+
+// Compute age from a birth date, optionally to a death date.
+function computeAge(birth, death) {
+  if (!birth) return null;
+  const b = new Date(birth);
+  const end = death ? new Date(death) : new Date();
+  let age = end.getFullYear() - b.getFullYear();
+  const m = end.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && end.getDate() < b.getDate())) age--;
+  return age >= 0 && age < 130 ? age : null;
+}
+
 function showToast(msg, dur=2600) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -995,10 +1105,27 @@ function showToast(msg, dur=2600) {
   setTimeout(() => t.classList.remove('show'), dur);
 }
 
+// Run an async function over items with bounded concurrency.
+// Much faster than sequential awaits, without hammering the API all at once.
+async function mapLimit(items, limit, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const idx = next++;
+      try { results[idx] = await fn(items[idx], idx); }
+      catch(e) { results[idx] = null; }
+    }
+  }
+  const n = Math.min(limit, items.length) || 0;
+  await Promise.all(Array.from({ length: n }, worker));
+  return results;
+}
+
 async function tmdb(path, params={}) {
   const url = new URL(BASE_URL + path);
   url.searchParams.set('api_key', API_KEY);
-  url.searchParams.set('language', 'fr-FR');
+  url.searchParams.set('language', curLang());
   for (const [k,v] of Object.entries(params)) url.searchParams.set(k, v);
   const r = await fetch(url.toString());
   if (!r.ok) throw new Error('TMDB ' + r.status);
@@ -1052,6 +1179,58 @@ function switchTab(name, btn) {
 
 /* Sub-tabs state */
 const subTabState = { upcoming: 'cinema', agenda: 'cinema' };
+
+/* ═══════════════════════════════════════════
+   REGION SELECTOR
+═══════════════════════════════════════════ */
+function updateRegionUI() {
+  const btn = document.getElementById('regionToggle');
+  if (btn) btn.textContent = (REGIONS[REGION] || REGIONS.FR).label;
+}
+
+function activeTabName() {
+  const panel = document.querySelector('.tab-panel.active');
+  if (!panel) return null;
+  return panel.id.replace('tab-', '');
+}
+
+function toggleRegion() {
+  REGION = otherRegion();
+  try { localStorage.setItem(REGION_KEY, REGION); } catch(e) {}
+  updateRegionUI();
+
+  // The region affects language, popularity, release calendars and providers,
+  // so every cached/loaded view is now stale. Reset and reload.
+  tabLoaded.popular = false;
+  tabLoaded.upcoming = false;
+
+  // Reset paginated lists
+  popularState.page = 0; popularState.totalPages = 1; popularState.seen = new Set();
+  upcomingState.cinemaPage = 0; upcomingState.cinemaTotal = 1; upcomingState.cinemaSeen = new Set(); upcomingState.cinemaCount = 0;
+  upcomingState.streamPage = 0; upcomingState.streamTotal = 1; upcomingState.streamSeen = new Set();
+
+  // Drop region-specific load-more buttons
+  ['grid-popular-more','grid-upcoming-cinema-more','grid-upcoming-stream-more'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.remove();
+  });
+
+  // Invalidate agenda cache (release dates are region-specific) and
+  // cached provider info on favorites (watch_region changed)
+  try { localStorage.removeItem(AGENDA_CACHE_KEY); } catch(e) {}
+  try { localStorage.removeItem(STREAM_CHECK_KEY); } catch(e) {}
+  for (const f of S.favs) { f._providers = false; f._streamPlatforms = undefined; f._streamSnapshot = undefined; }
+  saveState();
+
+  showToast((REGION === 'FR' ? '🇫🇷' : '🇺🇸') + ' Région : ' + (REGION === 'FR' ? 'France' : 'US'));
+
+  // Reload whichever tab is visible now
+  const tab = activeTabName();
+  if (tab === 'popular') { tabLoaded.popular = true; loadPopular(); }
+  else if (tab === 'upcoming') { tabLoaded.upcoming = true; loadUpcoming(); }
+  else if (tab === 'favs') renderFavs();
+  else if (tab === 'agenda') renderAgenda();
+  // 'search' results stay as-is until the next search
+}
 
 function switchSubTab(section, type) {
   subTabState[section] = type;
@@ -1157,6 +1336,7 @@ function makePosterEl(movie, options={}) {
     img.src = IMG_BASE + '/w342' + movie.poster_path;
     img.alt = '';
     img.loading = 'lazy';
+    img.decoding = 'async';
     posterWrap.appendChild(img);
   } else {
     const ph = document.createElement('div');
@@ -1183,8 +1363,8 @@ function makePosterEl(movie, options={}) {
   });
   posterWrap.appendChild(favBtn);
 
-  // Watched toggle (favorites view only)
-  if (options.favControls) {
+  // Watched toggle (favorites view only, and only once the film is released)
+  if (options.favControls && isReleased(movie)) {
     const wBtn = document.createElement('button');
     wBtn.className = 'btn-watched' + (isWatched(movie.id) ? ' on' : '');
     wBtn.dataset.id = movie.id;
@@ -1411,7 +1591,7 @@ const popularState = { page: 0, totalPages: 1, seen: new Set() };
 
 async function loadPopular() {
   document.getElementById('popular-date').textContent =
-    new Date().toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+    new Date().toLocaleDateString(curLocale(), { day:'numeric', month:'long', year:'numeric' });
   try {
     await fetchPopularPage(true);  // first page (clears grid)
     setLoadMore('grid-popular', popularState.page < popularState.totalPages, () => fetchPopularPage(false));
@@ -1426,7 +1606,7 @@ async function fetchPopularPage(first) {
   let more = true;
   // Keep advancing pages until we actually surface new films (or run out)
   do {
-    const data = await tmdb('/movie/popular', { page: popularState.page + 1, region: 'FR' });
+    const data = await tmdb('/movie/popular', { page: popularState.page + 1, region: REGION });
     popularState.page = data.page;
     popularState.totalPages = Math.min(data.total_pages, 500);
     more = popularState.page < popularState.totalPages;
@@ -1493,7 +1673,7 @@ async function loadUpcoming() {
 }
 
 async function fetchUpcomingCinemaPage(first) {
-  const data = await tmdb('/movie/upcoming', { page: upcomingState.cinemaPage + 1, region: 'FR' });
+  const data = await tmdb('/movie/upcoming', { page: upcomingState.cinemaPage + 1, region: REGION });
   upcomingState.cinemaPage = data.page;
   upcomingState.cinemaTotal = Math.min(data.total_pages, 500);
 
@@ -1516,23 +1696,22 @@ async function fetchUpcomingCinemaPage(first) {
 }
 
 async function fetchUpcomingStreamPage(first) {
-  const sp = await tmdb('/movie/now_playing', { page: upcomingState.streamPage + 1, region: 'FR' });
+  const sp = await tmdb('/movie/now_playing', { page: upcomingState.streamPage + 1, region: REGION });
   upcomingState.streamPage = sp.page;
   upcomingState.streamTotal = Math.min(sp.total_pages, 500);
 
   const candidates = (sp.results || []).filter(m => !upcomingState.streamSeen.has(m.id));
-  const withStream = [];
-  for (const m of candidates) {
-    try {
-      const wp = await tmdb('/movie/' + m.id + '/watch/providers');
-      const fr = (wp.results || {}).FR || {};
-      if (fr.flatrate && fr.flatrate.length) {
-        upcomingState.streamSeen.add(m.id);
-        withStream.push({ ...m, _streamPlatforms: fr.flatrate.slice(0,4).map(p => p.provider_name) });
-      }
-    } catch(e) {}
-    await new Promise(r => setTimeout(r, 70));
-  }
+  const enriched = await mapLimit(candidates, 6, async (m) => {
+    const wp = await tmdb('/movie/' + m.id + '/watch/providers');
+    const reg = (wp.results || {})[REGION] || {};
+    if (reg.flatrate && reg.flatrate.length) {
+      return { ...m, _streamPlatforms: reg.flatrate.slice(0,4).map(p => p.provider_name) };
+    }
+    return null;
+  });
+
+  const withStream = enriched.filter(Boolean);
+  withStream.forEach(m => upcomingState.streamSeen.add(m.id));
 
   const grid = document.getElementById('grid-upcoming-stream');
   if (first) grid.innerHTML = '';
@@ -1650,24 +1829,22 @@ async function refreshAgenda() {
   }
 
   try {
-    for (const fav of S.favs) {
-      if (fav.watched) continue; // watched movies no longer "upcoming"
-      try {
-        const [detail, rdData, wpData] = await Promise.all([
-          tmdb('/movie/' + fav.id),
-          tmdb('/movie/' + fav.id + '/release_dates'),
-          tmdb('/movie/' + fav.id + '/watch/providers'),
-        ]);
+    const todo = S.favs.filter(f => !f.watched);
+    // One bundled request per movie, run with bounded concurrency
+    const rows = await mapLimit(todo, 6, async (fav) => {
+      const detail = await tmdb('/movie/' + fav.id, { append_to_response: 'release_dates,watch/providers' });
+      const rdData = detail.release_dates || {};
+      const wpData = detail['watch/providers'] || {};
 
-        const frReleases = (rdData.results || []).find(r => r.iso_3166_1 === 'FR');
-        const cinemaDate = findRelease(frReleases, [3]) || detail.release_date;
-        const digitalDate = findRelease(frReleases, [4]);
+      const primReleases = (rdData.results || []).find(r => r.iso_3166_1 === REGION);
+      const cinemaDate = findRelease(primReleases, [3]) || detail.release_date;
+      const digitalDate = findRelease(primReleases, [4]);
 
-        const fr = (wpData.results || {}).FR || {};
-        const platforms = fr.flatrate ? fr.flatrate.slice(0,4).map(p => p.provider_name) : [];
+      const reg = (wpData.results || {})[REGION] || {};
+      const platforms = reg.flatrate ? reg.flatrate.slice(0,4).map(p => p.provider_name) : [];
 
-        // Keep only the lightweight fields paintAgenda needs (serializable cache)
-        const base = {
+      return {
+        base: {
           id: detail.id,
           title: detail.title,
           original_title: detail.original_title,
@@ -1675,18 +1852,22 @@ async function refreshAgenda() {
           backdrop_path: detail.backdrop_path,
           release_date: detail.release_date,
           vote_average: detail.vote_average,
-        };
+        },
+        cinemaDate, digitalDate, platforms,
+      };
+    });
 
-        if (cinemaDate && new Date(cinemaDate) >= today) {
-          cinemaUpcoming.push({ ...base, _cinemaDate: cinemaDate });
-        }
-        if (digitalDate && new Date(digitalDate) >= today) {
-          streamUpcoming.push({ ...base, _digitalDate: digitalDate, _streamPlatforms: platforms });
-        } else if (platforms.length && (!cinemaDate || new Date(cinemaDate) < today)) {
-          streamUpcoming.push({ ...base, _streamPlatforms: platforms });
-        }
-      } catch(e) {}
-      await new Promise(r => setTimeout(r, 100));
+    for (const row of rows) {
+      if (!row) continue;
+      const { base, cinemaDate, digitalDate, platforms } = row;
+      if (cinemaDate && new Date(cinemaDate) >= today) {
+        cinemaUpcoming.push({ ...base, _cinemaDate: cinemaDate });
+      }
+      if (digitalDate && new Date(digitalDate) >= today) {
+        streamUpcoming.push({ ...base, _digitalDate: digitalDate, _streamPlatforms: platforms });
+      } else if (platforms.length && (!cinemaDate || new Date(cinemaDate) < today)) {
+        streamUpcoming.push({ ...base, _streamPlatforms: platforms });
+      }
     }
 
     cinemaUpcoming.sort((a,b) => new Date(a._cinemaDate||a.release_date) - new Date(b._cinemaDate||b.release_date));
@@ -1763,18 +1944,45 @@ async function renderFavs() {
     return;
   }
 
+  // Render cards right away (fast); streaming line fills in once known.
   for (const fav of list) {
-    // Fetch streaming platforms if not cached
-    if (!fav._providers) {
-      try {
-        const wp = await tmdb('/movie/' + fav.id + '/watch/providers');
-        const frp = (wp.results || {}).FR || {};
-        fav._streamPlatforms = frp.flatrate ? frp.flatrate.slice(0,3).map(p => p.provider_name) : [];
-        fav._providers = true;
-        saveState();
-      } catch(e) {}
-    }
     grid.appendChild(makePosterEl(fav, { favExtras: true, favControls: true }));
+  }
+
+  // Fetch any missing streaming providers in parallel, then refresh just
+  // those cards in place (no full re-render, no blocking the first paint).
+  const uncached = list.filter(f => !f._providers);
+  if (uncached.length) {
+    await mapLimit(uncached, 6, async (fav) => {
+      const wp = await tmdb('/movie/' + fav.id + '/watch/providers');
+      const reg = (wp.results || {})[REGION] || {};
+      fav._streamPlatforms = reg.flatrate ? reg.flatrate.slice(0,3).map(p => p.provider_name) : [];
+      fav._providers = true;
+    });
+    saveState();
+    // Only repaint if still on the Favoris tab with the same filter
+    if (document.getElementById('tab-favs').classList.contains('active')) {
+      // Patch streaming lines without rebuilding the whole grid
+      for (const fav of uncached) {
+        const btn = grid.querySelector(`.btn-add-fav[data-id="${fav.id}"]`);
+        const card = btn ? btn.closest('.movie-card') : null;
+        if (!card) continue;
+        const info = card.querySelector('.card-info');
+        if (!info) continue;
+        // Remove any existing stream line then add the fresh one
+        const old = info.querySelector('.fav-date-line.stream-line');
+        if (old) old.remove();
+        if (fav._streamPlatforms && fav._streamPlatforms.length) {
+          const stLine = document.createElement('div');
+          stLine.className = 'fav-date-line stream-line';
+          const dot = document.createElement('div'); dot.className = 'dot-stream';
+          const txt = document.createElement('span');
+          txt.textContent = '📺 ' + fav._streamPlatforms.join(', ');
+          stLine.appendChild(dot); stLine.appendChild(txt);
+          info.appendChild(stLine);
+        }
+      }
+    }
   }
 }
 
@@ -1788,8 +1996,7 @@ async function openMovieModal(movieId) {
   const overlay = document.getElementById('modalOverlay');
   const inner   = document.getElementById('modalInner');
 
-  // Tear down any previous trailer player and the filmography layer
-  destroyTrailerPlayer();
+  // Close the filmography layer if it was left open
   document.getElementById('personLayer').classList.remove('open');
 
   overlay.classList.add('open');
@@ -1798,17 +2005,20 @@ async function openMovieModal(movieId) {
   inner.innerHTML = '<div class="loader-wrap"><div class="spinner"></div><span>Chargement…</span></div>';
 
   try {
-    const [detail, credits, providers, rdData, videosEn] = await Promise.all([
-      tmdb('/movie/' + movieId),
-      tmdb('/movie/' + movieId + '/credits'),
-      tmdb('/movie/' + movieId + '/watch/providers'),
-      tmdb('/movie/' + movieId + '/release_dates'),
+    // One bundled request (detail + credits + release_dates + providers)
+    // plus a parallel en-US videos call so the trailer stays VO by default.
+    const [detail, videosEn] = await Promise.all([
+      tmdb('/movie/' + movieId, { append_to_response: 'credits,release_dates,watch/providers' }),
       tmdbEn('/movie/' + movieId + '/videos'),
     ]);
 
     if (_currentModalId !== movieId) return;
 
-    // Pick the best trailer: VO (en-US) by default, fall back to FR.
+    const credits   = detail.credits || {};
+    const providers = detail['watch/providers'] || {};
+    const rdData    = detail.release_dates || {};
+
+    // Pick the best trailer: VO (en-US) by default, fall back to current language.
     let trailerKey = pickTrailer(videosEn.results);
     if (!trailerKey) {
       try {
@@ -1818,12 +2028,12 @@ async function openMovieModal(movieId) {
       } catch(e) {}
     }
 
-    const fr = (providers.results || {}).FR || {};
+    const fr = (providers.results || {})[REGION] || {};
     const streamPlatforms = fr.flatrate || [];
 
-    // Release dates
-    const frReleases = (rdData.results || []).find(r => r.iso_3166_1 === 'FR');
-    const usReleases = (rdData.results || []).find(r => r.iso_3166_1 === 'US');
+    // Release dates — primary = selected region, secondary = the other one
+    const primReleases  = (rdData.results || []).find(r => r.iso_3166_1 === REGION);
+    const otherReleases = (rdData.results || []).find(r => r.iso_3166_1 === otherRegion());
 
     function findRelease(country, types) {
       if (!country) return null;
@@ -1834,9 +2044,9 @@ async function openMovieModal(movieId) {
       return null;
     }
 
-    const cinemaDateFR = findRelease(frReleases, [3]) || detail.release_date;
-    const cinemaDateUS = findRelease(usReleases, [3]);
-    const digitalDate  = findRelease(frReleases, [4]) || findRelease(usReleases, [4]);
+    const cinemaDatePrimary = findRelease(primReleases, [3]) || detail.release_date;
+    const cinemaDateOther   = findRelease(otherReleases, [3]);
+    const digitalDate       = findRelease(primReleases, [4]) || findRelease(otherReleases, [4]);
 
     const cast = (credits.cast || []).slice(0, 10);
     const backdropUrl = detail.backdrop_path ? IMG_BASE + '/w1280' + detail.backdrop_path : null;
@@ -1874,11 +2084,7 @@ async function openMovieModal(movieId) {
       label.textContent = '▶ Bande-annonce';
       backdropWrap.appendChild(playBtn);
       backdropWrap.appendChild(label);
-      // Pre-create the YouTube player (behind the thumbnail) so a single
-      // user tap can start it — required for iOS, which blocks programmatic
-      // playback unless it happens inside the gesture on an already-ready player.
-      prepareTrailer(backdropWrap, trailerKey);
-      playBtn.addEventListener('click', () => startTrailer(backdropWrap, trailerKey));
+      playBtn.addEventListener('click', () => playTrailer(backdropWrap, trailerKey));
     }
     inner.appendChild(backdropWrap);
 
@@ -1940,18 +2146,23 @@ async function openMovieModal(movieId) {
       return item;
     }
 
-    rdGrid.appendChild(makeRelItem('cinema', '🎞 Cinéma France', cinemaDateFR, cinemaDateUS ? '🇺🇸 US : ' + fmtDate(cinemaDateUS) : null));
+    const primFlag  = REGION === 'FR' ? '🇫🇷' : '🇺🇸';
+    const otherFlag = otherRegion() === 'FR' ? '🇫🇷' : '🇺🇸';
+    const primName  = REGION === 'FR' ? 'France' : 'US';
+    const otherName = otherRegion() === 'FR' ? 'France' : 'US';
+
+    rdGrid.appendChild(makeRelItem('cinema', '🎞 Cinéma ' + primName, cinemaDatePrimary, cinemaDateOther ? otherFlag + ' ' + otherName + ' : ' + fmtDate(cinemaDateOther) : null));
     const spNames = streamPlatforms.map(p=>p.provider_name).join(', ');
-    rdGrid.appendChild(makeRelItem('stream', '📺 Streaming', digitalDate, spNames || 'Non disponible en FR'));
+    rdGrid.appendChild(makeRelItem('stream', '📺 Streaming', digitalDate, spNames || ('Non disponible (' + primName + ')')));
     content.appendChild(rdGrid);
 
-    // US/FR delay note
-    if (cinemaDateUS && cinemaDateFR && cinemaDateUS !== cinemaDateFR) {
-      const diff = Math.round((new Date(cinemaDateFR) - new Date(cinemaDateUS)) / 86400000);
+    // Release delay note (selected region vs the other)
+    if (cinemaDateOther && cinemaDatePrimary && cinemaDateOther !== cinemaDatePrimary) {
+      const diff = Math.round((new Date(cinemaDatePrimary) - new Date(cinemaDateOther)) / 86400000);
       const note = document.createElement('div');
       note.style.cssText = 'font-size:11px;color:var(--muted);margin-bottom:4px;';
-      if (diff > 0) note.textContent = '⚠ Sortie France ' + diff + ' jour' + (diff>1?'s':'') + ' après les US';
-      else if (diff < 0) note.textContent = '✓ Sortie France ' + Math.abs(diff) + ' jour' + (Math.abs(diff)>1?'s':'') + ' avant les US';
+      if (diff > 0) note.textContent = '⚠ Sortie ' + primName + ' ' + diff + ' jour' + (diff>1?'s':'') + ' après ' + otherName;
+      else if (diff < 0) note.textContent = '✓ Sortie ' + primName + ' ' + Math.abs(diff) + ' jour' + (Math.abs(diff)>1?'s':'') + ' avant ' + otherName;
       content.appendChild(note);
     }
 
@@ -2030,6 +2241,16 @@ function renderModalFavControls(movieId, favMovie, container) {
   box.innerHTML = '';
   if (!isFav(movieId)) return; // controls only relevant for favorites
 
+  // Not yet released → no "vu" option (nor rating, which implies watched)
+  if (!isReleased(favMovie)) {
+    const note = document.createElement('div');
+    note.className = 'modal-section-title';
+    note.style.marginTop = '14px';
+    note.textContent = '🗓 Pas encore sorti';
+    box.appendChild(note);
+    return;
+  }
+
   // Watched toggle button
   const wBtn = document.createElement('button');
   wBtn.className = 'modal-fav-btn' + (isWatched(movieId) ? ' saved' : '');
@@ -2082,95 +2303,18 @@ function renderModalFavControls(movieId, favMovie, container) {
 }
 
 /* ═══════════════════════════════════════════
-   TRAILER
+   TRAILER (simple: thumbnail → iframe on tap)
 ═══════════════════════════════════════════ */
-/* ═══════════════════════════════════════════
-   TRAILER (YouTube IFrame API)
-   The player is created up front (prepareTrailer). The user's tap then
-   calls playVideo() synchronously (startTrailer), which iOS allows because
-   the player already exists and the call happens inside the gesture.
-═══════════════════════════════════════════ */
-let _ytApiState = 'none'; // none | loading | ready
-let _ytPlayer = null;
-let _ytPlayerReady = false;
-let _ytWantPlay = false;
-let _trailerToken = 0;
-
-function loadYouTubeAPI() {
-  return new Promise((resolve) => {
-    if (_ytApiState === 'ready' || (window.YT && window.YT.Player)) { _ytApiState = 'ready'; return resolve(); }
-    // Chain onto any existing readiness callback
-    const prev = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => { if (typeof prev === 'function') { try { prev(); } catch(e){} } _ytApiState = 'ready'; resolve(); };
-    if (_ytApiState === 'loading') return; // resolve will fire via the shared callback
-    _ytApiState = 'loading';
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    document.head.appendChild(tag);
-  });
-}
-
-function destroyTrailerPlayer() {
-  _trailerToken++;
-  _ytPlayerReady = false;
-  _ytWantPlay = false;
-  if (_ytPlayer) {
-    try { _ytPlayer.destroy(); } catch(e) {}
-    _ytPlayer = null;
-  }
-}
-
-async function prepareTrailer(backdropWrap, key) {
-  destroyTrailerPlayer();
-  const token = ++_trailerToken;
-  await loadYouTubeAPI();
-  // Bail if the modal was closed or another film opened while the API loaded
-  if (token !== _trailerToken || !document.body.contains(backdropWrap)) return;
-
-  const mount = document.createElement('div');
-  mount.className = 'yt-mount';
-  backdropWrap.insertBefore(mount, backdropWrap.firstChild);
-
-  _ytPlayer = new YT.Player(mount, {
-    width: '100%',
-    height: '100%',
-    videoId: key,
-    playerVars: {
-      playsinline: 1,
-      rel: 0,
-      modestbranding: 1,
-      controls: 1,
-      origin: location.origin,
-    },
-    events: {
-      onReady: () => {
-        _ytPlayerReady = true;
-        if (_ytWantPlay) { try { _ytPlayer.playVideo(); } catch(e) {} }
-      },
-    },
-  });
-}
-
-function startTrailer(backdropWrap, key) {
-  backdropWrap.classList.add('playing');
-  if (_ytPlayer && _ytPlayerReady) {
-    try { _ytPlayer.playVideo(); return; } catch(e) {}
-  }
-  if (_ytPlayer && !_ytPlayerReady) {
-    // Player exists but not ready yet — play as soon as it is
-    _ytWantPlay = true;
-    return;
-  }
-  // Fallback: API never loaded — use a plain autoplay iframe
+function playTrailer(backdropWrap, key) {
   const wrap = document.createElement('div');
   wrap.className = 'trailer-iframe-wrap';
   const iframe = document.createElement('iframe');
-  let src = 'https://www.youtube.com/embed/' + key + '?autoplay=1&playsinline=1&rel=0&modestbranding=1';
+  let src = 'https://www.youtube.com/embed/' + key + '?playsinline=1&rel=0&modestbranding=1';
   if (location.protocol === 'http:' || location.protocol === 'https:') {
     src += '&origin=' + encodeURIComponent(location.origin);
   }
   iframe.src = src;
-  iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+  iframe.allow = 'accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen';
   iframe.allowFullscreen = true;
   iframe.referrerPolicy = 'strict-origin-when-cross-origin';
   wrap.appendChild(iframe);
@@ -2217,7 +2361,10 @@ async function openPersonLayer(personId, personName, profilePath) {
   scroll.scrollTop = 0;
 
   try {
-    const data = await tmdb('/person/' + personId + '/movie_credits');
+    const [details, data] = await Promise.all([
+      tmdb('/person/' + personId),
+      tmdb('/person/' + personId + '/movie_credits'),
+    ]);
     if (reqId !== _personReqId) return; // a newer request superseded this
 
     // Acting roles, most recent first, de-duplicated by movie id
@@ -2235,10 +2382,32 @@ async function openPersonLayer(personId, personName, profilePath) {
     sub.textContent = count + ' film' + (count > 1 ? 's' : '');
 
     scroll.innerHTML = '';
+
+    // If the biography is empty in the current language, fall back to en-US
+    if (!(details.biography || '').trim() && curLang() !== 'en-US') {
+      try {
+        const en = await tmdbEn('/person/' + personId);
+        if (reqId !== _personReqId) return;
+        if (en && (en.biography || '').trim()) details.biography = en.biography;
+      } catch(e) {}
+    }
+
+    // ── Bio block (birth date + age, birthplace, biography) ──
+    const bioBlock = buildPersonBio(details);
+    if (bioBlock) scroll.appendChild(bioBlock);
+
     if (!films.length) {
-      scroll.innerHTML = '<div class="empty-state"><div class="icon">🎬</div><p>Aucun film trouvé</p></div>';
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = '<div class="icon">🎬</div><p>Aucun film trouvé</p>';
+      scroll.appendChild(empty);
       return;
     }
+
+    const gridLabel = document.createElement('div');
+    gridLabel.className = 'person-grid-label';
+    gridLabel.textContent = 'Filmographie';
+    scroll.appendChild(gridLabel);
 
     const grid = document.createElement('div');
     grid.className = 'person-grid';
@@ -2297,13 +2466,81 @@ function closePersonLayer() {
   document.getElementById('personScroll').innerHTML = '';
 }
 
+// Build the actor facts (birth date + age, birthplace) and biography
+// with an expand/collapse toggle. Returns null if there's nothing to show.
+function buildPersonBio(details) {
+  if (!details) return null;
+  const hasFacts = details.birthday || details.place_of_birth;
+  const bioText = (details.biography || '').trim();
+  if (!hasFacts && !bioText) return null;
+
+  const block = document.createElement('div');
+  block.className = 'person-bio-block';
+
+  // Facts row
+  if (hasFacts) {
+    const facts = document.createElement('div');
+    facts.className = 'person-facts';
+
+    if (details.birthday) {
+      const age = computeAge(details.birthday, details.deathday);
+      const f = document.createElement('span');
+      f.className = 'person-fact';
+      if (details.deathday) {
+        f.innerHTML = '🎂 <strong>' + h(fmtDate(details.birthday)) + '</strong>'
+                    + ' — † ' + h(fmtDate(details.deathday))
+                    + (age != null ? ' (' + age + ' ans)' : '');
+      } else {
+        f.innerHTML = '🎂 <strong>' + h(fmtDate(details.birthday)) + '</strong>'
+                    + (age != null ? ' · ' + age + ' ans' : '');
+      }
+      facts.appendChild(f);
+    }
+
+    if (details.place_of_birth) {
+      const f = document.createElement('span');
+      f.className = 'person-fact';
+      f.innerHTML = '📍 ' + h(details.place_of_birth);
+      facts.appendChild(f);
+    }
+    block.appendChild(facts);
+  }
+
+  // Biography with expand/collapse
+  if (bioText) {
+    const bio = document.createElement('div');
+    bio.className = 'person-bio collapsed';
+    bio.textContent = bioText;
+    block.appendChild(bio);
+
+    // Only show the toggle if the text is long enough to be clipped
+    const toggle = document.createElement('button');
+    toggle.className = 'person-bio-toggle';
+    toggle.textContent = 'Lire la suite';
+    toggle.addEventListener('click', () => {
+      const collapsed = bio.classList.toggle('collapsed');
+      toggle.textContent = collapsed ? 'Lire la suite' : 'Réduire';
+    });
+    block.appendChild(toggle);
+
+    // Defer the length check until it's in the DOM
+    requestAnimationFrame(() => {
+      if (bio.scrollHeight <= 62) { // ~ the collapsed max-height
+        bio.classList.remove('collapsed');
+        toggle.style.display = 'none';
+      }
+    });
+  }
+
+  return block;
+}
+
 function closeModal() {
   // If the filmography layer is open, close just that first (back-to-modal)
   const layer = document.getElementById('personLayer');
   if (layer.classList.contains('open')) { closePersonLayer(); return; }
 
   _currentModalId = null;
-  destroyTrailerPlayer();
   const inner = document.getElementById('modalInner');
   inner.innerHTML = ''; // stops any playing trailer iframe
   document.getElementById('modalOverlay').classList.remove('open');
@@ -2410,27 +2647,22 @@ async function checkStreamingAvailability(force=false) {
   const toCheck = S.favs.filter(f => !f.watched);
   const found = [];
 
-  for (const fav of toCheck) {
-    try {
-      const wp = await tmdb('/movie/' + fav.id + '/watch/providers');
-      const frp = (wp.results || {}).FR || {};
-      const current = frp.flatrate ? frp.flatrate.map(p => p.provider_name) : [];
+  await mapLimit(toCheck, 6, async (fav) => {
+    const wp = await tmdb('/movie/' + fav.id + '/watch/providers');
+    const reg = (wp.results || {})[REGION] || {};
+    const current = reg.flatrate ? reg.flatrate.map(p => p.provider_name) : [];
 
-      const prev = Array.isArray(fav._streamSnapshot) ? fav._streamSnapshot : null;
-      // Newly added platforms = in current but not in previous snapshot
-      if (prev !== null) {
-        const added = current.filter(p => !prev.includes(p));
-        if (added.length) {
-          found.push({ id: fav.id, title: fav.title || fav.original_title, poster_path: fav.poster_path, added });
-        }
+    const prev = Array.isArray(fav._streamSnapshot) ? fav._streamSnapshot : null;
+    if (prev !== null) {
+      const added = current.filter(p => !prev.includes(p));
+      if (added.length) {
+        found.push({ id: fav.id, title: fav.title || fav.original_title, poster_path: fav.poster_path, added });
       }
-      // Update snapshot + the display field used by cards
-      fav._streamSnapshot = current;
-      fav._streamPlatforms = current.slice(0, 3);
-      fav._providers = true;
-    } catch(e) {}
-    await new Promise(r => setTimeout(r, 70));
-  }
+    }
+    fav._streamSnapshot = current;
+    fav._streamPlatforms = current.slice(0, 3);
+    fav._providers = true;
+  });
 
   saveState();
   try { localStorage.setItem(STREAM_CHECK_KEY, String(Date.now())); } catch(e) {}
@@ -2485,6 +2717,8 @@ function renderStreamAlert() {
 ═══════════════════════════════════════════ */
 loadState();
 updateBadges();
+updateRegionUI();
+document.getElementById('appVersion').textContent = 'v' + APP_VERSION;
 // Streaming availability check runs in the background (daily throttle).
 // Delayed so it doesn't compete with the first paint.
 setTimeout(() => { checkStreamingAvailability().catch(()=>{}); }, 1200);
