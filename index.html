@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Ciné Tracker — v1.4 (actor photo gallery) -->
+<!-- Ciné Tracker — v1.6 (year headers only, no year nav) -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -583,6 +583,32 @@ header {
 }
 .fav-list-actions .card-rating {
   margin-top: 0;
+}
+
+/* Year section headers (list view only) */
+.fav-year-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 4px 6px;
+}
+.fav-year-header:first-child { padding-top: 4px; }
+.fav-year-label {
+  font-family: var(--font-title);
+  font-size: 18px;
+  letter-spacing: 0.5px;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+.fav-year-line {
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+.fav-year-count {
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
 }
 
 /* "Nouveau en streaming" alert banner */
@@ -1351,7 +1377,7 @@ const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_BASE = 'https://image.tmdb.org/t/p';
 const STORE_KEY = 'cinetracker-v2';
 const REGION_KEY = 'cinetracker-region';
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.6';
 
 /* ═══════════════════════════════════════════
    FIREBASE
@@ -2523,7 +2549,11 @@ async function renderFavs() {
   else if (_favFilter === 'watched') list = S.favs.filter(f => f.watched);
 
   // Sort by release_date only (asc = oldest first, desc = newest first)
+  // Unknown dates (no release_date) always go to the end.
   list = [...list].sort((a, b) => {
+    const aUnk = !a.release_date;
+    const bUnk = !b.release_date;
+    if (aUnk !== bUnk) return aUnk ? 1 : -1;
     const da = new Date(a.release_date || 0).getTime();
     const db = new Date(b.release_date || 0).getTime();
     return _favSort === 'asc' ? da - db : db - da;
@@ -2539,7 +2569,38 @@ async function renderFavs() {
 
   if (_favView === 'list') {
     grid.className = 'fav-list';
-    for (const fav of list) grid.appendChild(makeFavListRow(fav));
+
+    // Group by year (release_date), unknown last — section headers only
+    const groups = [];
+    const yearMap = new Map();
+    for (const fav of list) {
+      const key = fav.release_date ? fav.release_date.slice(0, 4) : 'unknown';
+      if (!yearMap.has(key)) {
+        const g = { key, label: key === 'unknown' ? 'Date inconnue' : key, items: [] };
+        yearMap.set(key, g);
+        groups.push(g);
+      }
+      yearMap.get(key).items.push(fav);
+    }
+
+    for (const g of groups) {
+      const head = document.createElement('div');
+      head.className = 'fav-year-header';
+      const lbl = document.createElement('span');
+      lbl.className = 'fav-year-label';
+      lbl.textContent = g.label;
+      const line = document.createElement('div');
+      line.className = 'fav-year-line';
+      const cnt = document.createElement('span');
+      cnt.className = 'fav-year-count';
+      cnt.textContent = g.items.length + ' film' + (g.items.length > 1 ? 's' : '');
+      head.appendChild(lbl);
+      head.appendChild(line);
+      head.appendChild(cnt);
+      grid.appendChild(head);
+
+      for (const fav of g.items) grid.appendChild(makeFavListRow(fav));
+    }
   } else {
     grid.className = 'movie-grid';
     for (const fav of list) {
