@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Ciné Tracker — v1.1 -->
+<!-- Ciné Tracker — v1.4 (actor photo gallery) -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -86,6 +86,35 @@ header {
   font-weight: 500;
   color: var(--muted);
   letter-spacing: 0;
+}
+
+/* Cloud sync indicator (next to version) */
+.sync-status {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 2px 7px;
+  border-radius: 10px;
+  line-height: 1.4;
+  white-space: nowrap;
+  transition: color 0.2s, background 0.2s;
+}
+.sync-status.ok {
+  color: #15803d;
+  background: #f0fdf4;
+}
+.sync-status.syncing {
+  color: #b45309;
+  background: #fffbeb;
+}
+.sync-status.err {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+.sync-status.off {
+  color: var(--muted);
+  background: var(--surface2);
 }
 
 .header-actions { display: flex; gap: 8px; align-items: center; }
@@ -434,6 +463,128 @@ header {
 .filter-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .filter-pill .count { opacity: 0.7; font-size: 11px; margin-left: 3px; }
 
+/* Favorites toolbar: filters + view mode + sort */
+.fav-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px 14px;
+}
+.fav-toolbar .filter-pills {
+  padding: 0;
+  flex: 1 1 auto;
+}
+.fav-view-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: auto;
+}
+.view-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink2);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  font-family: var(--font-body);
+  padding: 0;
+  line-height: 1;
+}
+.view-btn:hover { background: var(--surface2); color: var(--ink); }
+.view-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.view-btn.sort-btn { width: auto; padding: 0 10px; font-size: 12px; font-weight: 600; gap: 4px; }
+
+/* List layout for favorites */
+.fav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px 32px;
+}
+.fav-list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: var(--shadow);
+}
+.fav-list-row:hover { background: var(--surface2); }
+.fav-list-row.is-watched { opacity: 0.72; }
+.fav-list-row.is-watched:hover { opacity: 1; }
+.fav-list-poster {
+  width: 46px;
+  height: 69px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--surface2);
+}
+.fav-list-poster-ph {
+  width: 46px;
+  height: 69px;
+  border-radius: 6px;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.fav-list-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.fav-list-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fav-list-meta {
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+}
+.fav-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.fav-list-actions .btn-add-fav,
+.fav-list-actions .btn-watched {
+  position: static;
+  width: 30px;
+  height: 30px;
+  box-shadow: none;
+}
+.fav-list-actions .card-rating {
+  margin-top: 0;
+}
+
 /* "Nouveau en streaming" alert banner */
 .stream-alert {
   margin: 0 20px 16px;
@@ -741,7 +892,8 @@ header {
   flex-shrink: 0;
 }
 .person-back:hover { background: var(--surface2); }
-.person-photo { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--surface2); flex-shrink: 0; }
+.person-photo { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--surface2); flex-shrink: 0; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; }
+.person-photo:hover { transform: scale(1.1); box-shadow: 0 3px 10px rgba(0,0,0,0.3); }
 .person-photo-ph { width: 44px; height: 44px; border-radius: 50%; background: var(--surface2); display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--muted);flex-shrink:0; }
 .person-name { font-family: var(--font-title); font-size: 20px; letter-spacing: 0.4px; color: var(--ink); line-height: 1.1; }
 .person-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
@@ -813,6 +965,155 @@ header {
 .cast-item.clickable { cursor: pointer; }
 .cast-item.clickable .cast-photo, .cast-item.clickable .cast-photo-ph { transition: transform 0.12s, box-shadow 0.12s; }
 .cast-item.clickable:hover .cast-photo, .cast-item.clickable:hover .cast-photo-ph { transform: scale(1.08); box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
+
+/* ─── PHOTO GALLERY (over person layer) ─── */
+.photo-gallery-layer {
+  position: absolute;
+  inset: 0;
+  background: var(--bg2);
+  z-index: 30;
+  display: none;
+  flex-direction: column;
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+}
+@media (min-width: 600px) { .photo-gallery-layer { border-radius: 20px; } }
+.photo-gallery-layer.open { display: flex; }
+.photo-gallery-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--rule);
+  flex-shrink: 0;
+}
+.photo-gallery-back {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.photo-gallery-back:hover { background: var(--surface2); }
+.photo-gallery-title {
+  font-family: var(--font-title);
+  font-size: 18px;
+  letter-spacing: 0.4px;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.photo-gallery-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+  flex: 1;
+}
+.photo-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+.photo-gallery-item {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  aspect-ratio: 3/4;
+  background: var(--surface2);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.photo-gallery-item:hover { transform: scale(1.05); }
+.photo-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Full-screen photo viewer */
+.photo-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 600;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.photo-viewer-overlay.open { display: flex; }
+.photo-viewer-container {
+  max-width: 90vw;
+  max-height: 90vh;
+  position: relative;
+}
+.photo-viewer-img {
+  max-width: 90vw;
+  max-height: 85vh;
+  display: block;
+  border-radius: 12px;
+  margin: 0 auto;
+}
+.photo-viewer-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #fff;
+  font-size: 28px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.photo-viewer-nav:hover { background: rgba(255, 255, 255, 0.3); }
+.photo-viewer-prev { left: -56px; }
+.photo-viewer-next { right: -56px; }
+@media (max-width: 768px) {
+  .photo-viewer-prev { left: 8px; }
+  .photo-viewer-next { right: 8px; }
+}
+.photo-viewer-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #fff;
+  font-size: 22px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  z-index: 601;
+}
+.photo-viewer-close:hover { background: rgba(255, 255, 255, 0.3); }
+.photo-viewer-counter {
+  position: absolute;
+  bottom: -36px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
 
 .modal-fav-btn { display:flex;align-items:center;gap:6px;padding:11px 18px;border-radius:var(--radius);border:1.5px solid var(--rule);background:var(--surface2);color:var(--ink2);font-family:var(--font-body);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;width:100%;justify-content:center;margin-top:20px; }
 .modal-fav-btn:hover { background:var(--accent);color:#fff;border-color:var(--accent); }
@@ -891,6 +1192,7 @@ header {
     <div class="logo-wrap">
       <div class="logo">CINÉ<span>TRACKER</span></div>
       <span class="app-version" id="appVersion"></span>
+      <span class="sync-status off" id="syncStatus" title="État de la synchronisation cloud">Sync</span>
     </div>
     <div class="header-actions">
       <button class="region-toggle" id="regionToggle" onclick="toggleRegion()" title="Changer de région"></button>
@@ -986,10 +1288,17 @@ header {
       <div class="section-sub" id="favs-count-label"></div>
     </div>
     <div id="streamAlert"></div>
-    <div class="filter-pills" id="favFilters" style="display:none">
-      <button class="filter-pill active" data-filter="all" onclick="setFavFilter('all',this)">Tous <span class="count" id="cnt-all"></span></button>
-      <button class="filter-pill" data-filter="towatch" onclick="setFavFilter('towatch',this)">À voir <span class="count" id="cnt-towatch"></span></button>
-      <button class="filter-pill" data-filter="watched" onclick="setFavFilter('watched',this)">Vus <span class="count" id="cnt-watched"></span></button>
+    <div class="fav-toolbar" id="favFilters" style="display:none">
+      <div class="filter-pills">
+        <button class="filter-pill active" data-filter="all" onclick="setFavFilter('all',this)">Tous <span class="count" id="cnt-all"></span></button>
+        <button class="filter-pill" data-filter="towatch" onclick="setFavFilter('towatch',this)">À voir <span class="count" id="cnt-towatch"></span></button>
+        <button class="filter-pill" data-filter="watched" onclick="setFavFilter('watched',this)">Vus <span class="count" id="cnt-watched"></span></button>
+      </div>
+      <div class="fav-view-controls">
+        <button class="view-btn active" id="viewGridBtn" onclick="setFavView('grid')" title="Vue grille">▦</button>
+        <button class="view-btn" id="viewListBtn" onclick="setFavView('list')" title="Vue liste">☰</button>
+        <button class="view-btn sort-btn" id="sortBtn" onclick="toggleFavSort()" title="Tri par date de sortie">↑ Ancien</button>
+      </div>
     </div>
     <div class="movie-grid" id="grid-favs"></div>
   </div>
@@ -1004,12 +1313,34 @@ header {
     <div class="person-layer" id="personLayer">
       <div class="person-header" id="personHeader"></div>
       <div class="person-scroll" id="personScroll"></div>
+      <div class="photo-gallery-layer" id="photoGalleryLayer">
+        <div class="photo-gallery-header">
+          <button class="photo-gallery-back" onclick="closePhotoGallery()" title="Retour">‹</button>
+          <div class="photo-gallery-title" id="photoGalleryTitle">Photos</div>
+        </div>
+        <div class="photo-gallery-scroll" id="photoGalleryScroll"></div>
+      </div>
     </div>
+  </div>
+</div>
+
+<!-- Full-screen photo viewer (outside modal sheet for proper stacking) -->
+<div class="photo-viewer-overlay" id="photoViewerOverlay" onclick="handlePhotoViewerClick(event)">
+  <button class="photo-viewer-close" onclick="closePhotoViewer()">✕</button>
+  <div class="photo-viewer-container">
+    <img id="photoViewerImg" class="photo-viewer-img" alt="">
+    <button class="photo-viewer-nav photo-viewer-prev" onclick="event.stopPropagation();prevPhoto()">‹</button>
+    <button class="photo-viewer-nav photo-viewer-next" onclick="event.stopPropagation();nextPhoto()">›</button>
+    <div class="photo-viewer-counter"><span id="photoViewerCounter">1/1</span></div>
   </div>
 </div>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 
 <script>
 /* ═══════════════════════════════════════════
@@ -1020,7 +1351,125 @@ const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_BASE = 'https://image.tmdb.org/t/p';
 const STORE_KEY = 'cinetracker-v2';
 const REGION_KEY = 'cinetracker-region';
-const APP_VERSION = '1.1';
+const APP_VERSION = '1.4';
+
+/* ═══════════════════════════════════════════
+   FIREBASE
+═══════════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBr6RN2_I8J1mrD5CfiniiK2plBfa6ZvS8",
+  authDomain: "cine-tracker-81bef.firebaseapp.com",
+  databaseURL: "https://cine-tracker-81bef-default-rtdb.firebaseio.com",
+  projectId: "cine-tracker-81bef",
+  storageBucket: "cine-tracker-81bef.firebasestorage.app",
+  messagingSenderId: "954277704494",
+  appId: "1:954277704494:web:da03246b1b1ecedde9c0bf"
+};
+
+let firebaseApp = null;
+let firebaseDb = null;
+let cloudListener = null;
+let suppressCloudPush = false;
+let cloudReady = false;
+
+function initFirebase() {
+  try {
+    if (!firebase.apps.length) firebaseApp = firebase.initializeApp(firebaseConfig);
+    else firebaseApp = firebase.app();
+    firebaseDb = firebase.database();
+    return true;
+  } catch (e) {
+    console.error('Firebase init error', e);
+    return false;
+  }
+}
+
+function rootRef() {
+  return firebaseDb.ref('/');
+}
+
+/** Strip local-only cache fields before pushing to the cloud. */
+function cleanFavsForCloud(favs) {
+  return (favs || []).map(f => ({
+    id: f.id,
+    title: f.title,
+    original_title: f.original_title || null,
+    poster_path: f.poster_path || null,
+    backdrop_path: f.backdrop_path || null,
+    release_date: f.release_date || null,
+    vote_average: f.vote_average || 0,
+    watched: !!f.watched,
+    rating: f.rating || 0
+  }));
+}
+
+function setSyncStatus(state, title) {
+  // state: 'ok' | 'syncing' | 'err' | 'off'
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.className = 'sync-status ' + state;
+  const labels = { ok: 'Sync ✓', syncing: 'Sync…', err: 'Sync ✕', off: 'Hors ligne' };
+  el.textContent = labels[state] || 'Sync';
+  el.title = title || labels[state] || '';
+}
+
+function pushStateToFirebase() {
+  if (!firebaseDb || !cloudReady || suppressCloudPush) return;
+  setSyncStatus('syncing', 'Envoi vers le cloud…');
+  rootRef().update({
+    favorites: cleanFavsForCloud(S.favs),
+    updatedAt: Date.now()
+  }).then(() => {
+    setSyncStatus('ok', 'Synchronisé');
+  }).catch(err => {
+    console.warn('Firebase push error', err);
+    setSyncStatus('err', 'Erreur de synchronisation');
+  });
+}
+
+function applyCloudSnapshot(val) {
+  suppressCloudPush = true;
+  if (val && Array.isArray(val.favorites)) {
+    // Preserve local cache fields (_providers, _stream*) when same id exists
+    const byId = new Map((S.favs || []).map(f => [f.id, f]));
+    S.favs = val.favorites.map(cloud => {
+      const local = byId.get(cloud.id);
+      if (!local) return { ...cloud };
+      return {
+        ...cloud,
+        _providers: local._providers,
+        _streamPlatforms: local._streamPlatforms,
+        _streamSnapshot: local._streamSnapshot
+      };
+    });
+  }
+  // val === null → empty DB: keep local data (first run / never wipe)
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) {}
+  suppressCloudPush = false;
+  setSyncStatus('ok', 'Synchronisé');
+
+  try {
+    updateBadges();
+    if (document.getElementById('tab-favs')?.classList.contains('active')) renderFavs();
+    if (document.getElementById('tab-agenda')?.classList.contains('active')) renderAgenda();
+  } catch (e) {}
+}
+
+function startCloudSync() {
+  if (!firebaseDb) return;
+  if (cloudListener) {
+    rootRef().off('value', cloudListener);
+    cloudListener = null;
+  }
+  setSyncStatus('syncing', 'Connexion au cloud…');
+  cloudListener = rootRef().on('value', snap => {
+    applyCloudSnapshot(snap.val());
+  }, err => {
+    console.error('Cloud listener error', err);
+    setSyncStatus('err', 'Erreur de connexion cloud');
+  });
+  cloudReady = true;
+}
 
 // Region drives language (metadata), region (release lists) and
 // watch_region (streaming providers). FR or US.
@@ -1051,6 +1500,7 @@ function loadState() {
 
 function saveState() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch(e) {}
+  pushStateToFirebase();
 }
 
 /* ═══════════════════════════════════════════
@@ -1893,7 +2343,23 @@ async function refreshAgenda() {
 /* ═══════════════════════════════════════════
    FAVORITES RENDER
 ═══════════════════════════════════════════ */
+const FAV_VIEW_KEY = 'cinetracker-fav-view';
+const FAV_SORT_KEY = 'cinetracker-fav-sort'; // 'asc' | 'desc' by release_date
+
 let _favFilter = 'all';
+let _favView = 'grid';   // 'grid' | 'list'
+let _favSort = 'asc';    // 'asc' = oldest first, 'desc' = newest first
+
+(function loadFavPrefs() {
+  try {
+    const v = localStorage.getItem(FAV_VIEW_KEY);
+    if (v === 'grid' || v === 'list') _favView = v;
+  } catch (e) {}
+  try {
+    const s = localStorage.getItem(FAV_SORT_KEY);
+    if (s === 'asc' || s === 'desc') _favSort = s;
+  } catch (e) {}
+})();
 
 function setFavFilter(filter, btn) {
   _favFilter = filter;
@@ -1902,12 +2368,138 @@ function setFavFilter(filter, btn) {
   renderFavs();
 }
 
+function setFavView(mode) {
+  if (mode !== 'grid' && mode !== 'list') return;
+  _favView = mode;
+  try { localStorage.setItem(FAV_VIEW_KEY, mode); } catch (e) {}
+  updateFavViewButtons();
+  renderFavs();
+}
+
+function toggleFavSort() {
+  _favSort = _favSort === 'asc' ? 'desc' : 'asc';
+  try { localStorage.setItem(FAV_SORT_KEY, _favSort); } catch (e) {}
+  updateFavSortButton();
+  renderFavs();
+}
+
+function updateFavViewButtons() {
+  const g = document.getElementById('viewGridBtn');
+  const l = document.getElementById('viewListBtn');
+  if (g) g.classList.toggle('active', _favView === 'grid');
+  if (l) l.classList.toggle('active', _favView === 'list');
+}
+
+function updateFavSortButton() {
+  const btn = document.getElementById('sortBtn');
+  if (!btn) return;
+  if (_favSort === 'asc') {
+    btn.textContent = '↑ Ancien';
+    btn.title = 'Plus ancien → plus récent (cliquer pour inverser)';
+  } else {
+    btn.textContent = '↓ Récent';
+    btn.title = 'Plus récent → plus ancien (cliquer pour inverser)';
+  }
+}
+
+/** List-row card for favorites (poster + title + date + stream + controls). */
+function makeFavListRow(movie) {
+  const row = document.createElement('div');
+  row.className = 'fav-list-row' + (isWatched(movie.id) ? ' is-watched' : '');
+  row.dataset.id = movie.id;
+
+  if (movie.poster_path) {
+    const img = document.createElement('img');
+    img.className = 'fav-list-poster';
+    img.src = IMG_BASE + '/w92' + movie.poster_path;
+    img.alt = '';
+    img.loading = 'lazy';
+    row.appendChild(img);
+  } else {
+    const ph = document.createElement('div');
+    ph.className = 'fav-list-poster-ph';
+    ph.textContent = '🎬';
+    row.appendChild(ph);
+  }
+
+  const body = document.createElement('div');
+  body.className = 'fav-list-body';
+
+  const title = document.createElement('div');
+  title.className = 'fav-list-title';
+  title.textContent = movie.title || movie.original_title;
+  body.appendChild(title);
+
+  const meta = document.createElement('div');
+  meta.className = 'fav-list-meta';
+  if (movie.release_date) {
+    const d = document.createElement('span');
+    d.textContent = '🎞 ' + fmtDate(movie.release_date);
+    meta.appendChild(d);
+  }
+  if (movie._streamPlatforms && movie._streamPlatforms.length) {
+    const s = document.createElement('span');
+    s.style.color = 'var(--stream)';
+    s.textContent = '📺 ' + movie._streamPlatforms.join(', ');
+    meta.appendChild(s);
+  }
+  if (isWatched(movie.id)) {
+    const v = document.createElement('span');
+    v.style.color = 'var(--stream)';
+    v.textContent = '✓ Vu';
+    meta.appendChild(v);
+  }
+  body.appendChild(meta);
+
+  if (isWatched(movie.id)) {
+    body.appendChild(makeStarRow(movie.id, () => renderFavs()));
+  }
+  row.appendChild(body);
+
+  const actions = document.createElement('div');
+  actions.className = 'fav-list-actions';
+
+  if (isReleased(movie)) {
+    const wBtn = document.createElement('button');
+    wBtn.className = 'btn-watched' + (isWatched(movie.id) ? ' on' : '');
+    wBtn.dataset.id = movie.id;
+    wBtn.textContent = '✓';
+    wBtn.title = isWatched(movie.id) ? 'Vu — cliquer pour remettre à voir' : 'Marquer comme vu';
+    wBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      toggleWatched(movie);
+      renderFavs();
+    });
+    actions.appendChild(wBtn);
+  }
+
+  const favBtn = document.createElement('button');
+  favBtn.className = 'btn-add-fav' + (isFav(movie.id) ? ' saved' : '');
+  favBtn.dataset.id = movie.id;
+  favBtn.textContent = isFav(movie.id) ? '★' : '+';
+  favBtn.title = 'Favoris';
+  favBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    toggleFav(movie);
+    renderFavs();
+  });
+  actions.appendChild(favBtn);
+
+  row.appendChild(actions);
+  row.addEventListener('click', () => openMovieModal(movie.id));
+  return row;
+}
+
 async function renderFavs() {
   const grid = document.getElementById('grid-favs');
   const label = document.getElementById('favs-count-label');
   const filters = document.getElementById('favFilters');
 
+  updateFavViewButtons();
+  updateFavSortButton();
+
   if (!S.favs.length) {
+    grid.className = 'movie-grid';
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">★</div><p>Ajoutez des films avec le bouton +</p></div>';
     label.textContent = '';
     filters.style.display = 'none';
@@ -1930,46 +2522,71 @@ async function renderFavs() {
   if (_favFilter === 'towatch') list = S.favs.filter(f => !f.watched);
   else if (_favFilter === 'watched') list = S.favs.filter(f => f.watched);
 
-  // Sort: to-watch first by soonest release; watched by rating desc
+  // Sort by release_date only (asc = oldest first, desc = newest first)
   list = [...list].sort((a, b) => {
-    if (!!a.watched !== !!b.watched) return a.watched ? 1 : -1;
-    if (a.watched && b.watched) return (b.rating || 0) - (a.rating || 0);
-    return new Date(a.release_date || 0) - new Date(b.release_date || 0);
+    const da = new Date(a.release_date || 0).getTime();
+    const db = new Date(b.release_date || 0).getTime();
+    return _favSort === 'asc' ? da - db : db - da;
   });
 
   grid.innerHTML = '';
   if (!list.length) {
+    grid.className = 'movie-grid';
     const msg = _favFilter === 'watched' ? 'Aucun film vu pour l\'instant' : 'Aucun film à voir — tout est vu !';
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🎬</div><p>' + msg + '</p></div>';
     return;
   }
 
-  // Render cards right away (fast); streaming line fills in once known.
-  for (const fav of list) {
-    grid.appendChild(makePosterEl(fav, { favExtras: true, favControls: true }));
+  if (_favView === 'list') {
+    grid.className = 'fav-list';
+    for (const fav of list) grid.appendChild(makeFavListRow(fav));
+  } else {
+    grid.className = 'movie-grid';
+    for (const fav of list) {
+      grid.appendChild(makePosterEl(fav, { favExtras: true, favControls: true }));
+    }
   }
 
-  // Fetch any missing streaming providers in parallel, then refresh just
-  // those cards in place (no full re-render, no blocking the first paint).
+  // Fetch any missing streaming providers in parallel, then refresh just those rows
   const uncached = list.filter(f => !f._providers);
   if (uncached.length) {
     await mapLimit(uncached, 6, async (fav) => {
       const wp = await tmdb('/movie/' + fav.id + '/watch/providers');
       const reg = (wp.results || {})[REGION] || {};
-      fav._streamPlatforms = reg.flatrate ? reg.flatrate.slice(0,3).map(p => p.provider_name) : [];
+      fav._streamPlatforms = reg.flatrate ? reg.flatrate.slice(0, 3).map(p => p.provider_name) : [];
       fav._providers = true;
     });
     saveState();
-    // Only repaint if still on the Favoris tab with the same filter
-    if (document.getElementById('tab-favs').classList.contains('active')) {
-      // Patch streaming lines without rebuilding the whole grid
+    if (!document.getElementById('tab-favs').classList.contains('active')) return;
+
+    if (_favView === 'list') {
+      // Patch streaming labels in list rows
+      for (const fav of uncached) {
+        if (!fav._streamPlatforms || !fav._streamPlatforms.length) continue;
+        const row = grid.querySelector(`.fav-list-row[data-id="${fav.id}"]`);
+        if (!row) continue;
+        const meta = row.querySelector('.fav-list-meta');
+        if (!meta) continue;
+        let streamSpan = null;
+        meta.querySelectorAll('span').forEach(sp => {
+          if (sp.textContent && sp.textContent.indexOf('📺') === 0) streamSpan = sp;
+        });
+        if (streamSpan) {
+          streamSpan.textContent = '📺 ' + fav._streamPlatforms.join(', ');
+        } else {
+          const s = document.createElement('span');
+          s.style.color = 'var(--stream)';
+          s.textContent = '📺 ' + fav._streamPlatforms.join(', ');
+          meta.appendChild(s);
+        }
+      }
+    } else {
       for (const fav of uncached) {
         const btn = grid.querySelector(`.btn-add-fav[data-id="${fav.id}"]`);
         const card = btn ? btn.closest('.movie-card') : null;
         if (!card) continue;
         const info = card.querySelector('.card-info');
         if (!info) continue;
-        // Remove any existing stream line then add the fresh one
         const old = info.querySelector('.fav-date-line.stream-line');
         if (old) old.remove();
         if (fav._streamPlatforms && fav._streamPlatforms.length) {
@@ -2332,6 +2949,10 @@ async function openPersonLayer(personId, personName, profilePath) {
   const scroll = document.getElementById('personScroll');
   const reqId  = ++_personReqId;
 
+  // Close any nested photo layers from a previous person
+  closePhotoGallery();
+  closePhotoViewer();
+
   // Header
   header.innerHTML = '';
   const back = document.createElement('button');
@@ -2345,6 +2966,8 @@ async function openPersonLayer(personId, personName, profilePath) {
     const img = document.createElement('img');
     img.className = 'person-photo';
     img.src = IMG_BASE + '/w185' + profilePath; img.alt = '';
+    img.title = 'Voir les photos';
+    img.addEventListener('click', () => openPhotoGallery(personId, personName));
     header.appendChild(img);
   } else {
     const ph = document.createElement('div'); ph.className = 'person-photo-ph'; ph.textContent = '👤';
@@ -2461,6 +3084,8 @@ async function openPersonLayer(personId, personName, profilePath) {
 
 function closePersonLayer() {
   _personReqId++; // invalidate any in-flight request
+  closePhotoGallery();
+  closePhotoViewer();
   const layer = document.getElementById('personLayer');
   layer.classList.remove('open');
   document.getElementById('personScroll').innerHTML = '';
@@ -2536,7 +3161,11 @@ function buildPersonBio(details) {
 }
 
 function closeModal() {
-  // If the filmography layer is open, close just that first (back-to-modal)
+  // Nested layers: photo viewer → gallery → person → modal
+  const viewer = document.getElementById('photoViewerOverlay');
+  if (viewer && viewer.classList.contains('open')) { closePhotoViewer(); return; }
+  const gallery = document.getElementById('photoGalleryLayer');
+  if (gallery && gallery.classList.contains('open')) { closePhotoGallery(); return; }
   const layer = document.getElementById('personLayer');
   if (layer.classList.contains('open')) { closePersonLayer(); return; }
 
@@ -2554,7 +3183,110 @@ function handleModalClick(e) {
   if (e.target === document.getElementById('modalOverlay')) closeModal();
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'ArrowLeft' && document.getElementById('photoViewerOverlay')?.classList.contains('open')) prevPhoto();
+  if (e.key === 'ArrowRight' && document.getElementById('photoViewerOverlay')?.classList.contains('open')) nextPhoto();
+});
+
+/* ═══════════════════════════════════════════
+   ACTOR PHOTO GALLERY + VIEWER
+═══════════════════════════════════════════ */
+let _currentPhotoIndex = 0;
+let _photoList = [];
+let _photoGalleryReqId = 0;
+
+async function openPhotoGallery(personId, personName) {
+  const gallery = document.getElementById('photoGalleryLayer');
+  const scroll = document.getElementById('photoGalleryScroll');
+  const title = document.getElementById('photoGalleryTitle');
+  const reqId = ++_photoGalleryReqId;
+
+  title.textContent = personName + ' — Photos';
+  scroll.innerHTML = '<div class="loader-wrap"><div class="spinner"></div><span>Chargement des photos…</span></div>';
+  gallery.classList.add('open');
+  scroll.scrollTop = 0;
+
+  try {
+    const data = await tmdb('/person/' + personId + '/images');
+    if (reqId !== _photoGalleryReqId) return;
+
+    _photoList = (data.profiles || [])
+      .filter(p => p.file_path)
+      .sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0));
+
+    scroll.innerHTML = '';
+
+    if (!_photoList.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = '<div class="icon">📸</div><p>Aucune photo trouvée</p>';
+      scroll.appendChild(empty);
+      return;
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'photo-gallery-grid';
+
+    for (let i = 0; i < _photoList.length; i++) {
+      const photo = _photoList[i];
+      const item = document.createElement('div');
+      item.className = 'photo-gallery-item';
+      const img = document.createElement('img');
+      img.src = IMG_BASE + '/w300' + photo.file_path;
+      img.alt = '';
+      img.loading = 'lazy';
+      item.appendChild(img);
+      item.addEventListener('click', () => openPhotoViewer(i));
+      grid.appendChild(item);
+    }
+    scroll.appendChild(grid);
+  } catch (e) {
+    console.error('Error loading photos:', e);
+    scroll.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Erreur de chargement</p></div>';
+  }
+}
+
+function closePhotoGallery() {
+  _photoGalleryReqId++; // invalidate in-flight request
+  document.getElementById('photoGalleryLayer').classList.remove('open');
+  document.getElementById('photoGalleryScroll').innerHTML = '';
+}
+
+function openPhotoViewer(index) {
+  if (!_photoList.length) return;
+  _currentPhotoIndex = index;
+  updatePhotoViewer();
+  document.getElementById('photoViewerOverlay').classList.add('open');
+}
+
+function closePhotoViewer() {
+  document.getElementById('photoViewerOverlay').classList.remove('open');
+}
+
+function handlePhotoViewerClick(e) {
+  if (e.target === document.getElementById('photoViewerOverlay')) closePhotoViewer();
+}
+
+function updatePhotoViewer() {
+  if (!_photoList.length) return;
+  const photo = _photoList[_currentPhotoIndex];
+  document.getElementById('photoViewerImg').src = IMG_BASE + '/w780' + photo.file_path;
+  document.getElementById('photoViewerCounter').textContent =
+    (_currentPhotoIndex + 1) + '/' + _photoList.length;
+}
+
+function prevPhoto() {
+  if (!_photoList.length) return;
+  _currentPhotoIndex = (_currentPhotoIndex - 1 + _photoList.length) % _photoList.length;
+  updatePhotoViewer();
+}
+
+function nextPhoto() {
+  if (!_photoList.length) return;
+  _currentPhotoIndex = (_currentPhotoIndex + 1) % _photoList.length;
+  updatePhotoViewer();
+}
 
 /* ═══════════════════════════════════════════
    ICS
@@ -2713,12 +3445,77 @@ function renderStreamAlert() {
 }
 
 /* ═══════════════════════════════════════════
+   MIGRATE (?migrate=1) — inject a JSON export into Firebase
+═══════════════════════════════════════════ */
+function runMigrateFromFile(file) {
+  if (!file || !firebaseDb) {
+    showToast('✗ Firebase non prêt');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.favorites || !Array.isArray(data.favorites)) throw new Error('Format invalide');
+      const cleaned = cleanFavsForCloud(data.favorites);
+      rootRef().set({
+        favorites: cleaned,
+        updatedAt: Date.now()
+      }).then(() => {
+        S.favs = cleaned;
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (err) {}
+        updateBadges();
+        showToast('✓ ' + cleaned.length + ' favori(s) migrés vers Firebase');
+        if (document.getElementById('tab-favs')?.classList.contains('active')) renderFavs();
+      }).catch(err => {
+        console.error(err);
+        showToast('✗ Erreur Firebase');
+      });
+    } catch (err) {
+      showToast('✗ ' + (err.message || 'JSON invalide'));
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ═══════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════ */
 loadState();
 updateBadges();
 updateRegionUI();
+updateFavViewButtons();
+updateFavSortButton();
 document.getElementById('appVersion').textContent = 'v' + APP_VERSION;
+setSyncStatus('off', 'Cloud non connecté');
+
+if (initFirebase()) {
+  startCloudSync();
+  // If cloud is still empty and we already have local favs → seed once
+  setTimeout(() => {
+    if (S.favs.length) pushStateToFirebase();
+  }, 800);
+} else {
+  setSyncStatus('err', 'Firebase indisponible');
+}
+
+// Mode migration : ouvrir un sélecteur de fichier JSON d'export
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('migrate') !== '1') return;
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.addEventListener('change', () => {
+    if (input.files[0]) runMigrateFromFile(input.files[0]);
+    input.remove();
+  });
+  // Petit délai pour laisser Firebase s'initialiser
+  setTimeout(() => input.click(), 400);
+})();
+
 // Streaming availability check runs in the background (daily throttle).
 // Delayed so it doesn't compete with the first paint.
 setTimeout(() => { checkStreamingAvailability().catch(()=>{}); }, 1200);
