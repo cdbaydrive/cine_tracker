@@ -1209,6 +1209,34 @@ header {
   .movie-grid { grid-template-columns: repeat(2,1fr); gap:12px; padding:0 12px 24px; }
   .modal-content { padding: 0 14px 28px; }
 }
+
+/* ─── SIMPLE AUTH OVERLAY ─── */
+.auth-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 2000;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.auth-overlay.hidden { display: none; }
+.auth-card {
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 16px;
+  padding: 28px 24px; width: 100%; max-width: 340px; text-align: center;
+  box-shadow: var(--shadow-md);
+}
+.auth-card h2 { font-family: var(--font-title); font-size: 1.5rem; margin-bottom: 8px; color: var(--ink); }
+.auth-card p { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; line-height: 1.4; }
+.auth-input {
+  width: 100%; background: var(--surface2); border: 2px solid var(--rule); color: var(--ink);
+  padding: 12px 14px; border-radius: 10px; font-size: 0.95rem; margin-bottom: 10px; outline: none;
+  font-family: var(--font-body); text-align: center;
+}
+.auth-input:focus { border-color: var(--accent); }
+.auth-submit {
+  width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 10px;
+  padding: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: var(--font-body);
+}
+.auth-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.auth-error { color: #dc2626; font-size: 0.8rem; min-height: 1.1em; margin: 8px 0; }
+.auth-hint { color: var(--muted); font-size: 0.75rem; margin-top: 10px; }
+
 </style>
 </head>
 <body>
@@ -1221,6 +1249,7 @@ header {
       <span class="sync-status off" id="syncStatus" title="État de la synchronisation cloud">Sync</span>
     </div>
     <div class="header-actions">
+      <button class="btn-icon" id="btn-logout" onclick="doLogout()" title="Se déconnecter" style="display:none">⎋</button>
       <button class="region-toggle" id="regionToggle" onclick="toggleRegion()" title="Changer de région"></button>
       <button class="btn-icon" onclick="exportData()" title="Exporter favoris">⬆</button>
       <label class="btn-icon" title="Importer favoris" style="cursor:pointer">
@@ -1361,11 +1390,25 @@ header {
   </div>
 </div>
 
+<!-- SIMPLE AUTH -->
+<div id="auth-overlay" class="auth-overlay hidden">
+  <div class="auth-card">
+    <h2>Ciné Tracker</h2>
+    <p>Connecte-toi pour accéder à tes favoris.</p>
+    <input class="auth-input" id="auth-email" type="email" placeholder="Email" autocomplete="username">
+    <input class="auth-input" id="auth-password" type="password" placeholder="Mot de passe" autocomplete="current-password">
+    <div class="auth-error" id="auth-error"></div>
+    <button class="auth-submit" id="auth-submit" onclick="doLogin()">Se connecter</button>
+    <p class="auth-hint">Session conservée sur cet appareil.</p>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 
 <script>
@@ -1380,7 +1423,7 @@ const REGION_KEY = 'cinetracker-region';
 const APP_VERSION = '1.6';
 
 /* ═══════════════════════════════════════════
-   FIREBASE
+   FIREBASE (single user + Auth)
 ═══════════════════════════════════════════ */
 const firebaseConfig = {
   apiKey: "AIzaSyBr6RN2_I8J1mrD5CfiniiK2plBfa6ZvS8",
@@ -1394,15 +1437,19 @@ const firebaseConfig = {
 
 let firebaseApp = null;
 let firebaseDb = null;
+let firebaseAuth = null;
 let cloudListener = null;
 let suppressCloudPush = false;
 let cloudReady = false;
+let currentUser = null;
 
 function initFirebase() {
   try {
     if (!firebase.apps.length) firebaseApp = firebase.initializeApp(firebaseConfig);
     else firebaseApp = firebase.app();
     firebaseDb = firebase.database();
+    firebaseAuth = firebase.auth();
+    firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
     return true;
   } catch (e) {
     console.error('Firebase init error', e);
@@ -1414,7 +1461,6 @@ function rootRef() {
   return firebaseDb.ref('/');
 }
 
-/** Strip local-only cache fields before pushing to the cloud. */
 function cleanFavsForCloud(favs) {
   return (favs || []).map(f => ({
     id: f.id,
@@ -1430,7 +1476,6 @@ function cleanFavsForCloud(favs) {
 }
 
 function setSyncStatus(state, title) {
-  // state: 'ok' | 'syncing' | 'err' | 'off'
   const el = document.getElementById('syncStatus');
   if (!el) return;
   el.className = 'sync-status ' + state;
@@ -1440,7 +1485,7 @@ function setSyncStatus(state, title) {
 }
 
 function pushStateToFirebase() {
-  if (!firebaseDb || !cloudReady || suppressCloudPush) return;
+  if (!firebaseDb || !cloudReady || !currentUser || suppressCloudPush) return;
   setSyncStatus('syncing', 'Envoi vers le cloud…');
   rootRef().update({
     favorites: cleanFavsForCloud(S.favs),
@@ -1449,14 +1494,15 @@ function pushStateToFirebase() {
     setSyncStatus('ok', 'Synchronisé');
   }).catch(err => {
     console.warn('Firebase push error', err);
-    setSyncStatus('err', 'Erreur de synchronisation');
+    const msg = (err && (err.message || err.code)) || 'Erreur de synchronisation';
+    setSyncStatus('err', msg);
+    showToast('✗ ' + msg);
   });
 }
 
 function applyCloudSnapshot(val) {
   suppressCloudPush = true;
   if (val && Array.isArray(val.favorites)) {
-    // Preserve local cache fields (_providers, _stream*) when same id exists
     const byId = new Map((S.favs || []).map(f => [f.id, f]));
     S.favs = val.favorites.map(cloud => {
       const local = byId.get(cloud.id);
@@ -1469,7 +1515,6 @@ function applyCloudSnapshot(val) {
       };
     });
   }
-  // val === null → empty DB: keep local data (first run / never wipe)
   try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) {}
   suppressCloudPush = false;
   setSyncStatus('ok', 'Synchronisé');
@@ -1482,7 +1527,7 @@ function applyCloudSnapshot(val) {
 }
 
 function startCloudSync() {
-  if (!firebaseDb) return;
+  if (!firebaseDb || !currentUser) return;
   if (cloudListener) {
     rootRef().off('value', cloudListener);
     cloudListener = null;
@@ -1492,10 +1537,86 @@ function startCloudSync() {
     applyCloudSnapshot(snap.val());
   }, err => {
     console.error('Cloud listener error', err);
-    setSyncStatus('err', 'Erreur de connexion cloud');
+    const msg = (err && (err.message || err.code)) || 'Erreur de connexion';
+    setSyncStatus('err', msg);
+    showToast('✗ ' + msg);
   });
   cloudReady = true;
 }
+
+function stopCloudSync() {
+  if (cloudListener && firebaseDb) {
+    rootRef().off('value', cloudListener);
+  }
+  cloudListener = null;
+  cloudReady = false;
+}
+
+function showAuth() {
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  const btn = document.getElementById('btn-logout');
+  if (btn) btn.style.display = 'none';
+}
+function hideAuth() {
+  document.getElementById('auth-overlay').classList.add('hidden');
+  document.body.style.overflow = '';
+  const btn = document.getElementById('btn-logout');
+  if (btn) btn.style.display = '';
+}
+
+function doLogin() {
+  const email = document.getElementById('auth-email').value.trim();
+  const pass = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-error');
+  const btn = document.getElementById('auth-submit');
+  if (!email || !pass) { errEl.textContent = 'Email et mot de passe requis.'; return; }
+  errEl.textContent = '';
+  btn.disabled = true;
+  firebaseAuth.signInWithEmailAndPassword(email, pass)
+    .then(() => { btn.disabled = false; })
+    .catch(err => {
+      errEl.textContent = err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
+        ? 'Email ou mot de passe incorrect.'
+        : (err.message || 'Connexion impossible');
+      btn.disabled = false;
+    });
+}
+
+function doLogout() {
+  if (firebaseAuth) firebaseAuth.signOut();
+}
+
+function startAuthListener() {
+  if (!initFirebase() || !firebaseAuth) {
+    setSyncStatus('err', 'Firebase indisponible');
+    return;
+  }
+  firebaseAuth.onAuthStateChanged(user => {
+    currentUser = user;
+    if (!user) {
+      stopCloudSync();
+      setSyncStatus('off', 'Non connecté');
+      showAuth();
+      return;
+    }
+    hideAuth();
+    loadState();
+    startCloudSync();
+    // seed if cloud empty and local has data
+    setTimeout(() => {
+      if (S.favs.length && cloudReady) pushStateToFirebase();
+    }, 600);
+  });
+}
+
+// Enter key support
+document.addEventListener('DOMContentLoaded', () => {
+  const pass = document.getElementById('auth-password');
+  const email = document.getElementById('auth-email');
+  if (pass) pass.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  if (email) email.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('auth-password').focus(); });
+});
 
 // Region drives language (metadata), region (release lists) and
 // watch_region (streaming providers). FR or US.
@@ -3542,23 +3663,14 @@ function runMigrateFromFile(file) {
 /* ═══════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════ */
-loadState();
 updateBadges();
 updateRegionUI();
 updateFavViewButtons();
 updateFavSortButton();
 document.getElementById('appVersion').textContent = 'v' + APP_VERSION;
-setSyncStatus('off', 'Cloud non connecté');
+setSyncStatus('off', 'Non connecté');
 
-if (initFirebase()) {
-  startCloudSync();
-  // If cloud is still empty and we already have local favs → seed once
-  setTimeout(() => {
-    if (S.favs.length) pushStateToFirebase();
-  }, 800);
-} else {
-  setSyncStatus('err', 'Firebase indisponible');
-}
+startAuthListener();
 
 // Mode migration : ouvrir un sélecteur de fichier JSON d'export
 (function () {
