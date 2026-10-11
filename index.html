@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Ciné Tracker — v1.6 (year headers only, no year nav) -->
+<!-- Ciné Tracker — v1.7 (fix double streaming line on fav cards) -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -1420,7 +1420,7 @@ const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_BASE = 'https://image.tmdb.org/t/p';
 const STORE_KEY = 'cinetracker-v2';
 const REGION_KEY = 'cinetracker-region';
-const APP_VERSION = '1.6';
+const APP_VERSION = '1.7';
 
 /* ═══════════════════════════════════════════
    FIREBASE (single user + Auth)
@@ -1916,6 +1916,25 @@ function updateBadges() {
   fb.classList.toggle('visible', toWatch > 0);
 }
 
+
+/* Normalize streaming platform names: drop "with Ads" variants when the base
+   provider is also present, and cap the list. */
+function normalizePlatforms(names) {
+  if (!names || !names.length) return [];
+  const cleaned = names.map(n => (n || '').trim()).filter(Boolean);
+  const bases = new Set();
+  const result = [];
+  for (const n of cleaned) {
+    const base = n.replace(/\s+(Standard\s+with\s+Ads|with\s+Ads|Premium|Basic|Ads)\b/gi, '').trim();
+    const key = base.toLowerCase();
+    if (bases.has(key)) continue;
+    bases.add(key);
+    // Prefer the shorter / base name
+    result.push(base || n);
+  }
+  return result.slice(0, 3);
+}
+
 /* ═══════════════════════════════════════════
    MAKE POSTER CARD
 ═══════════════════════════════════════════ */
@@ -2015,12 +2034,13 @@ function makePosterEl(movie, options={}) {
   } else if (options.showStreamLabel && options.streamLabel) {
     date.textContent = options.streamLabel;
     date.style.color = 'var(--stream)';
-  } else {
+  } else if (!options.favExtras) {
+    // Plain date only when not using the richer fav extras (which already show cinema date)
     date.textContent = movie.release_date ? fmtDate(movie.release_date) : '';
   }
 
   info.appendChild(title);
-  info.appendChild(date);
+  if (date.textContent) info.appendChild(date);
 
   // Fav extras (cinema date + streaming platforms)
   if (options.favExtras) {
@@ -2035,7 +2055,7 @@ function makePosterEl(movie, options={}) {
     }
     if (movie._streamPlatforms && movie._streamPlatforms.length) {
       const stLine = document.createElement('div');
-      stLine.className = 'fav-date-line';
+      stLine.className = 'fav-date-line stream-line';
       const dot = document.createElement('div'); dot.className = 'dot-stream';
       const txt = document.createElement('span');
       txt.textContent = '📺 ' + movie._streamPlatforms.join(', ');
@@ -2302,7 +2322,7 @@ async function fetchUpcomingStreamPage(first) {
     const wp = await tmdb('/movie/' + m.id + '/watch/providers');
     const reg = (wp.results || {})[REGION] || {};
     if (reg.flatrate && reg.flatrate.length) {
-      return { ...m, _streamPlatforms: reg.flatrate.slice(0,4).map(p => p.provider_name) };
+      return { ...m, _streamPlatforms: normalizePlatforms(reg.flatrate.map(p => p.provider_name)) };
     }
     return null;
   });
@@ -2438,7 +2458,7 @@ async function refreshAgenda() {
       const digitalDate = findRelease(primReleases, [4]);
 
       const reg = (wpData.results || {})[REGION] || {};
-      const platforms = reg.flatrate ? reg.flatrate.slice(0,4).map(p => p.provider_name) : [];
+      const platforms = normalizePlatforms(reg.flatrate ? reg.flatrate.map(p => p.provider_name) : []);
 
       return {
         base: {
@@ -2735,7 +2755,7 @@ async function renderFavs() {
     await mapLimit(uncached, 6, async (fav) => {
       const wp = await tmdb('/movie/' + fav.id + '/watch/providers');
       const reg = (wp.results || {})[REGION] || {};
-      fav._streamPlatforms = reg.flatrate ? reg.flatrate.slice(0, 3).map(p => p.provider_name) : [];
+      fav._streamPlatforms = normalizePlatforms(reg.flatrate ? reg.flatrate.map(p => p.provider_name) : []);
       fav._providers = true;
     });
     saveState();
@@ -2769,8 +2789,12 @@ async function renderFavs() {
         if (!card) continue;
         const info = card.querySelector('.card-info');
         if (!info) continue;
-        const old = info.querySelector('.fav-date-line.stream-line');
-        if (old) old.remove();
+        // Remove any existing stream lines (robust to missing class from older renders)
+        info.querySelectorAll('.fav-date-line').forEach(el => {
+          if (el.classList.contains('stream-line') || (el.textContent && el.textContent.includes('📺'))) {
+            el.remove();
+          }
+        });
         if (fav._streamPlatforms && fav._streamPlatforms.length) {
           const stLine = document.createElement('div');
           stLine.className = 'fav-date-line stream-line';
@@ -3574,7 +3598,7 @@ async function checkStreamingAvailability(force=false) {
       }
     }
     fav._streamSnapshot = current;
-    fav._streamPlatforms = current.slice(0, 3);
+    fav._streamPlatforms = normalizePlatforms(current);
     fav._providers = true;
   });
 
